@@ -10,6 +10,7 @@ const execFileAsync = promisify(execFile);
 const PROJECT_ROOT = path.resolve(import.meta.dirname, "..");
 const CLI_PATH = path.join(PROJECT_ROOT, "bin", "dev-workflow.js");
 const SKILL_DIR = ".claude/skills/dev-workflow";
+const PKG = JSON.parse(await fs.readFile(path.join(PROJECT_ROOT, "package.json"), "utf-8"));
 
 let tmpDirs = [];
 let fakeHome;
@@ -43,7 +44,7 @@ afterEach(async () => {
 describe("CLI: dev-workflow", () => {
   it("--version prints the version number", async () => {
     const { stdout } = await runCli(["--version"]);
-    expect(stdout.trim()).toContain("1.0.0");
+    expect(stdout.trim()).toContain(PKG.version);
   });
 
   it("--help prints usage information with available commands", async () => {
