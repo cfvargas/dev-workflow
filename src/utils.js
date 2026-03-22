@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import os from "node:os";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -21,6 +22,22 @@ export async function copyTemplates(targetDir) {
     await fs.mkdir(path.dirname(dest), { recursive: true });
     await fs.copyFile(src, dest);
   }
+}
+
+export function resolveGlobalDir() {
+  return path.join(os.homedir(), SKILL_DIR);
+}
+
+export async function getInstallations(projectDir) {
+  const localPath = path.join(projectDir, SKILL_DIR, "SKILL.md");
+  const globalPath = path.join(resolveGlobalDir(), "SKILL.md");
+
+  const [local, global] = await Promise.all([
+    fs.access(localPath).then(() => true, () => false),
+    fs.access(globalPath).then(() => true, () => false),
+  ]);
+
+  return { local, global };
 }
 
 export async function skillExists(targetDir) {
