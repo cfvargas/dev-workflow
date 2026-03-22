@@ -39,6 +39,8 @@ else
 fi
 ```
 
+**If the rebase has conflicts:** Stop the rebase (`git rebase --abort`), inform the user about the conflicting files, and ask how to proceed — merge instead, resolve manually, or start fresh.
+
 If the branch exists from a previous attempt, inform the user and ask whether to continue from the existing branch or start fresh (`git branch -D` + recreate).
 
 ### 4. Research the Codebase
@@ -71,11 +73,14 @@ Files that will be created or modified, organized by task.
 
 ## Tasks
 
-Tasks are ordered: test tasks FIRST, then implementation, then refactoring.
+Task ordering matters because Phase 3 executes them sequentially with TDD. The first task should always be writing the failing tests — this ensures the RED step happens before any implementation code exists. Then implementation tasks make those tests pass (GREEN).
+
+**Order: test tasks → implementation tasks → refactor tasks.**
+
 Each task is self-contained — the agent executing it should not need to guess or search for missing context.
 
-### Task 1: <Descriptive Name>
-**Type:** test | implementation | refactor
+### Task 1: Write Failing Tests for <Feature>
+**Type:** test
 **Files:**
 - Create: `exact/path/to/file.ts`
 - Modify: `exact/path/to/existing.ts`
@@ -106,6 +111,7 @@ Before presenting to the user, self-check:
 - Do test tasks come before implementation tasks?
 - Does each task have all the context it needs embedded?
 - Are acceptance criteria from the spec mapped to specific tasks?
+- **No version bump task.** Version bumping happens in Phase 4, not here. Do not include it as a task in the plan.
 
 ### 7. Present for Review
 
