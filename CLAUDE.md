@@ -27,7 +27,7 @@ npm test          # Run tests (vitest)
 ## Releases
 
 - Create a GitHub release after merging the PR
-- Tag matches version: `v1.2.0`
+- Tag matches version:(e.g., `v1.2.0`)
 - Release notes summarize what changed (not a commit log)
 
 ## Milestones
