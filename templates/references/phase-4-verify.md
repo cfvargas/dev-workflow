@@ -1,10 +1,25 @@
 # Phase 4: VERIFY — Quality Gates + Delivery
 
+## Subagent Context
+
+You are a subagent executing Phase 4 (VERIFY) of the SDD workflow. Your job is to run quality checks, clean up workflow artifacts, create a PR, and return a structured summary with recommendations to the orchestrator. You do NOT interact with the user directly — all user communication goes through the orchestrator that dispatched you.
+
+**What you received from the orchestrator:**
+- Feature name and branch name
+- Project root path
+- Paths to SPEC.md and PLAN.md
+- Project settings from CLAUDE.md (test command, lint command, type-check command, commit format, versioning scheme, milestone conventions, release conventions)
+- Base branch name
+
+**Before you begin:** Read the project's `CLAUDE.md` (or `AGENTS.md`) for conventions, especially quality check commands, versioning, milestones, and release practices.
+
+---
+
 **Goal:** Pass all quality checks and deliver the work.
 
 **Input:** Code from Phase 3 with all tests passing.
 
-**Output:** Committed code or pull request.
+**Output:** Verification results, PR (if applicable), and recommendations for the orchestrator.
 
 ## Steps
 
@@ -20,21 +35,33 @@ Run quality checks from CLAUDE.md. Only run commands that are actually configure
 
 If CLAUDE.md doesn't define a lint or type-check command, skip it — don't guess or use defaults. All configured checks must pass. If anything fails, fix it and re-run. Do not proceed with failures.
 
-### 2. Present Summary
+### 2. Prepare Summary
 
-Show the user:
+Compile a summary of:
 - What was implemented (link back to the spec's purpose)
 - Files created and modified
 - Test coverage added (which acceptance criteria are covered)
 - Any decisions made during implementation that deviated from the plan
 
-### 3. Deliver
+### 3. Clean Up Workflow Artifacts
 
-Ask the user how to proceed:
+Workflow artifacts (`docs/workflow/`) are local working documents that should never be committed to git. Delete them before creating the PR:
 
-1. **Commit and create PR** — stage source and test files, commit with conventional format, push and create PR
-2. **Review changes first** — let the user inspect the diff before committing
-3. **Make adjustments** — address any final feedback
+```bash
+rm -rf docs/workflow/<feature-name>
+rmdir docs/workflow 2>/dev/null
+```
+
+Since these files were never tracked by git, there is nothing to stage — just delete them locally. If for some reason they were accidentally committed earlier, stage the deletion with `git add` and include it in the PR.
+
+### 4. Deliver
+
+Create the PR. Stage source and test files, commit with conventional format, push and create the PR.
+
+**When committing:**
+- NEVER include workflow artifacts (`docs/workflow/`)
+- Only stage source code and test files
+- Use the commit format from the project's CLAUDE.md
 
 **PR body template:**
 ```markdown
@@ -54,50 +81,45 @@ Ask the user how to proceed:
 3. Push the fix — do NOT force-push, just add a new commit
 4. Confirm CI passes before moving on
 
-**When committing:**
-- NEVER include workflow artifacts (`docs/workflow/`)
-- Only stage source code and test files
-- Use the commit format from the project's CLAUDE.md
+### 5. Assess Release & Milestone
 
-### 4. Release & Milestone
+Check the project's `CLAUDE.md` for versioning, milestone, and release conventions. Do NOT execute version bumps, milestone assignments, or releases directly. Instead, return **recommendations** to the orchestrator, which will handle user interaction.
 
-This step is not optional when the project has versioning or milestone conventions in CLAUDE.md — if the project defines them, you must follow through.
+**Version bump recommendation:**
+- If the project has versioning conventions: recommend the appropriate bump (PATCH for fixes, MINOR for features, MAJOR for breaking changes) and identify the file to update (e.g., `package.json`, `Cargo.toml`, `pyproject.toml`).
+- If the project has no versioning convention: note this and recommend asking the user.
 
-Check the project's `CLAUDE.md` for versioning, milestone, and release conventions:
-- **Conventions exist:** Follow them. Always ask the user about version bump and milestone assignment.
-- **No conventions defined** (or no `CLAUDE.md`): Ask the user: "Would you like to set up a milestone and release for this PR?"
-- If the user explicitly declines, skip to the next step.
-
-**Version bump (this is the only place where version gets bumped — not in Phase 3):**
-- Bump the version in the appropriate file (e.g., `package.json`, `Cargo.toml`, `pyproject.toml`) according to the versioning scheme (semver: PATCH for fixes, MINOR for features, MAJOR for breaking changes).
-- If the project has no versioning convention, ask the user what version to use.
-- Commit the version bump separately (e.g., `chore: bump version to 1.4.0`).
-
-**Milestone:**
+**Milestone recommendation:**
 - Check if open milestones exist in the repo.
-- If one or more exist, show them to the user and ask: assign this PR to an existing milestone, or create a new one?
-- If none exist, create a new milestone matching the version (e.g., `v1.2.0`) and assign the PR.
+- If milestones exist: list them and recommend which one to assign (or recommend creating a new one).
+- If no milestones exist: recommend creating one matching the version.
 
-**After merge:**
-- If the milestone has remaining open issues/PRs, do NOT create the release yet — the milestone is still in progress. Inform the user.
-- If the milestone is now fully closed (all issues/PRs done), create a GitHub release with the version tag (e.g., `v1.2.0`). Write release notes summarizing everything in the milestone, not just this PR.
-
-### 5. Clean Up Workflow Artifacts
-
-Workflow artifacts (`docs/workflow/`) are local working documents that should never be committed to git. Delete them before creating the PR:
-
-```bash
-rm -rf docs/workflow/<feature-name>
-rmdir docs/workflow 2>/dev/null
-```
-
-Since these files were never tracked by git, there is nothing to stage — just delete them locally. If for some reason they were accidentally committed earlier, stage the deletion with `git add` and include it in the PR.
+**Release recommendation:**
+- Note whether a release should be created after merge (based on project conventions).
+- If the milestone has remaining open issues/PRs, recommend NOT creating the release yet.
+- If the milestone would be fully closed, recommend creating a GitHub release with a version tag.
 
 ## Exit Criteria
 
 - All quality checks pass (tests, lint, types)
-- Version bumped (if project uses versioning)
-- Milestone assigned to PR (if project uses milestones)
 - Workflow artifacts deleted
-- Code is committed or PR is created
-- Workflow complete
+- PR created (if applicable)
+- Release and milestone recommendations prepared for the orchestrator
+
+## Return Summary
+
+When you are done, return a structured summary to the orchestrator in this format:
+
+- **Status:** pass | fail (include reason if fail)
+- **Verification results:**
+  - Tests: pass/fail
+  - Lint: pass/fail/skipped (not configured)
+  - Type check: pass/fail/skipped (not configured)
+  - Fixes applied: list any issues that were fixed during verification
+- **PR:** URL (if created) | not created (include reason)
+- **CI status:** pass/fail/pending (if PR was created)
+- **Files summary:** files created, modified, and deleted across the feature
+- **Version bump recommendation:** what to bump, which file, what version (or "no versioning configured")
+- **Milestone recommendation:** assign to existing (name), create new (name), or "no milestone conventions"
+- **Release recommendation:** create release after merge (yes/no), release notes summary (if yes), or "milestone still has open items"
+- **Issues or concerns:** anything the orchestrator should know

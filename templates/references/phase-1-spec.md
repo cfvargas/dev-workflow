@@ -1,5 +1,20 @@
 # Phase 1: SPEC — What, Not How
 
+## Subagent Context
+
+You are a subagent executing Phase 1 (SPEC) of the SDD workflow. Your job is to produce a functional specification (`SPEC.md`) and return a structured summary to the orchestrator. You do NOT interact with the user directly — all user communication goes through the orchestrator that dispatched you.
+
+**What you received from the orchestrator:**
+- Feature name (or user's raw request if this is the first pass)
+- Project root path
+- Path where SPEC.md should be created (`docs/workflow/<feature-name>/SPEC.md`)
+
+**Before you begin:** Read the project's `CLAUDE.md` (or `AGENTS.md`) for conventions, domain context, and project-specific skills.
+
+**If you cannot resolve ambiguity from the codebase alone:** Return your clarifying questions in the summary instead of writing SPEC.md. The orchestrator will collect answers from the user and dispatch you again with the answers.
+
+---
+
 **Goal:** Define the feature functionally. Technology-agnostic. No implementation decisions.
 
 **Input:** User's request or ticket description.
@@ -22,13 +37,15 @@ Investigate the domain area relevant to the task:
 
 ### 2. Eliminate Ambiguity
 
-Ask clarifying questions about things you cannot resolve by reading the code. Group questions together. Focus on the "silent decisions" that agents normally guess wrong:
+Identify things you cannot resolve by reading the code. Focus on the "silent decisions" that agents normally guess wrong:
 
 - Authorization — who can do this?
 - Idempotency — what happens if the action is repeated?
 - Edge cases — empty states, errors, limits, concurrent access
 - Scope — which specific system/component is involved?
 - Existing behavior — does this replace or extend something?
+
+If you find questions that cannot be answered from the codebase, do NOT guess. Instead, return the questions in your summary so the orchestrator can collect answers from the user. Group questions together.
 
 ### 3. Define Feature Name and Create Directory
 
@@ -77,11 +94,9 @@ Then [expected result]
 - Things this feature explicitly does NOT do
 ```
 
-### 5. Present for Review
+### 5. Self-Check
 
-Show the spec to the user. The spec is not ready until the user approves it.
-
-Common review questions:
+Before returning results, verify:
 - Are there edge cases missing?
 - Are the acceptance criteria complete?
 - Is anything listed that should be out of scope (or vice versa)?
@@ -91,5 +106,20 @@ Common review questions:
 - Feature name defined (e.g., `add-ssl-filters`)
 - Directory created at `docs/workflow/<feature-name>/`
 - `SPEC.md` written inside that directory
-- User has reviewed and approved the spec
-- The user can close this session and start Phase 2 in a new one
+- OR: clarifying questions returned if ambiguity could not be resolved from the codebase
+
+## Return Summary
+
+When you are done, return a structured summary to the orchestrator in this format:
+
+- **Status:** pass (SPEC.md written) | questions (clarifying questions need user answers) | fail (error encountered)
+- **Feature name:** the kebab-case name you chose
+- **Directory created:** path to `docs/workflow/<feature-name>/`
+- **SPEC.md contents summary:**
+  - Purpose (1 sentence)
+  - Number of requirements
+  - Number of acceptance criteria
+  - Key edge cases identified
+- **Key decisions:** any assumptions or judgment calls you made
+- **Clarifying questions** (if status is "questions"): numbered list of questions that need user answers before SPEC.md can be written
+- **Issues or concerns:** anything the orchestrator should know
