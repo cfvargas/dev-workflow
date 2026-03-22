@@ -39,12 +39,17 @@ Ask the user how to proceed:
 - Only stage source code and test files
 - Use the commit format from the project's CLAUDE.md
 
-### 4. Release & Milestone (if project uses them)
+### 4. Release & Milestone
 
-Check the project's `CLAUDE.md` for versioning, milestone, and release conventions. If defined:
+Check the project's `CLAUDE.md` for versioning, milestone, and release conventions. If conventions are defined, follow them. If they are NOT defined (or `CLAUDE.md` doesn't exist), ask the user:
+
+> "Would you like to set up a milestone and release for this PR? (yes/no)"
+
+If the user says no, skip to the next step.
 
 **Version bump:**
 - Bump the version in the appropriate file (e.g., `package.json`, `Cargo.toml`, `pyproject.toml`) according to the versioning scheme (semver: PATCH for fixes, MINOR for features, MAJOR for breaking changes).
+- If the project has no versioning convention, ask the user what version to use.
 - This should already be part of the PR from Phase 3. If not, add it now.
 
 **Milestone:**
@@ -55,8 +60,6 @@ Check the project's `CLAUDE.md` for versioning, milestone, and release conventio
 **After merge:**
 - If the milestone has remaining open issues/PRs, do NOT create the release yet — the milestone is still in progress. Inform the user.
 - If the milestone is now fully closed (all issues/PRs done), create a GitHub release with the version tag (e.g., `v1.2.0`). Write release notes summarizing everything in the milestone, not just this PR.
-
-If `CLAUDE.md` does not define versioning/release conventions, skip this step entirely.
 
 ### 5. Clean Up Workflow Artifacts
 
