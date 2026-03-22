@@ -84,16 +84,162 @@ When starting a session, detect the current phase by checking state in `docs/wor
 - Test files exist and pass but no implementation code → the tests may be wrong, investigate before advancing
 - Multiple workflow directories exist → ask the user which feature to continue
 
-## Phase Instructions
+## Phase Dispatch
 
-Each phase has detailed instructions in a reference file. Read ONLY the reference for the current phase — loading all phases wastes context.
+Each phase runs in a **subagent** via the Agent tool. The orchestrator (you) never executes phase work directly — you dispatch it, receive results, and manage user interaction. This keeps your context window minimal across the full workflow lifecycle.
 
-| Phase | Reference | Input | Output |
-|-------|-----------|-------|--------|
-| 1. SPEC | `references/phase-1-spec.md` | User request | `SPEC.md` + directory |
-| 2. PLAN | `references/phase-2-plan.md` | `SPEC.md` | `PLAN.md` + git branch |
-| 3. IMPLEMENT | `references/phase-3-implement.md` | `PLAN.md` + `SPEC.md` | Per-task: tests + code + refactor, user-reviewed |
-| 4. VERIFY | `references/phase-4-verify.md` | All tasks passing | Commit/PR |
+### Dispatch Template
+
+For each phase, call the Agent tool with a prompt following this structure:
+
+```
+You are a subagent executing Phase N ({PHASE_NAME}) for the `{FEATURE_NAME}` feature in the `{PROJECT_NAME}` project.
+
+## Context
+
+- **Feature:** `{FEATURE_NAME}`
+- **Branch:** `feature/{FEATURE_NAME}`
+- **Project root:** {PROJECT_ROOT}
+- **Test command:** {TEST_COMMAND}
+- **Spec:** {SPEC_PATH or "N/A — this phase creates it"}
+- **Plan:** {PLAN_PATH or "N/A — this phase creates it"}
+
+## Task Definition (Phase 3 only)
+
+{TASK_DEFINITION from PLAN.md — include only for Phase 3 subagents}
+
+## Instructions
+
+1. Read `{PHASE_REFERENCE_PATH}` for your full instructions
+2. Read the project's `CLAUDE.md` for conventions (test command, commit format, etc.)
+3. {PHASE_SPECIFIC_INSTRUCTION}
+4. When done, return a structured summary (format defined in the reference file)
+5. Do NOT interact with the user — return results to the orchestrator
+6. Do NOT commit unless your phase instructions explicitly say to
+
+## Return Summary
+
+When done, return:
+- **Status:** pass/fail
+- **Files modified:** list
+- **Key changes:** summary of what was produced
+- **Test results:** pass/fail + relevant output (if applicable)
+- **Issues or concerns:** anything the orchestrator should know
+- **User input needed:** questions or decisions that require user response
+```
+
+### Phase Reference Table
+
+| Phase | Reference | Subagent receives | Subagent produces |
+|-------|-----------|-------------------|-------------------|
+| 1. SPEC | `references/phase-1-spec.md` | User request, project root | `SPEC.md` + directory (or clarifying questions) |
+| 2. PLAN | `references/phase-2-plan.md` | `SPEC.md` path, project root | `PLAN.md` + git branch |
+| 3. IMPLEMENT | `references/phase-3-implement.md` | Single task definition, `SPEC.md` path, branch, test command, completed tasks | Tests + code + refactor for ONE task (no commit) |
+| 4. VERIFY | `references/phase-4-verify.md` | All artifacts, branch, project settings | Verification results, PR (if applicable) |
+
+### Context Variables
+
+Collect these from Project Detection and pass them to every subagent:
+
+| Variable | Source | Example |
+|----------|--------|---------|
+| `FEATURE_NAME` | Naming Convention / user request | `add-ssl-filters` |
+| `PROJECT_ROOT` | Current working directory | `/home/user/myproject` |
+| `TEST_COMMAND` | CLAUDE.md | `npm test` |
+| `SPEC_PATH` | Naming Convention | `docs/workflow/add-ssl-filters/SPEC.md` |
+| `PLAN_PATH` | Naming Convention | `docs/workflow/add-ssl-filters/PLAN.md` |
+| `PHASE_REFERENCE_PATH` | Phase Reference Table | `references/phase-3-implement.md` |
+| `BASE_BRANCH` | CLAUDE.md | `main` |
+| `COMMIT_FORMAT` | CLAUDE.md | `conventional` |
+
+## Phase 3 Task Loop
+
+Phase 3 is special: the orchestrator dispatches **one subagent per task**, not one subagent for the entire phase. This keeps each task's RED-GREEN-REFACTOR cycle in a fresh context.
+
+### Orchestrator Procedure for Phase 3
+
+1. **Read PLAN.md** and parse the task list.
+2. **Determine progress:** Check which tasks already have passing tests and implementation (for session resumption). Identify the next incomplete task.
+3. **For each incomplete task:**
+
+   a. **Dispatch subagent** — Use the dispatch template with these Phase 3 specifics:
+      - Include the full task definition from PLAN.md (task number, description, files, acceptance criteria, steps)
+      - Include the SPEC.md path (subagent references acceptance criteria)
+      - Include the branch name (subagent must be on the feature branch)
+      - Include the test command
+      - Include the list of previously completed tasks (so the subagent can check for regressions)
+      - Add instruction: "Do NOT commit. The orchestrator handles commits after user approval."
+
+   b. **Receive results** — The subagent returns a structured summary: status, files modified, test results, any concerns.
+
+   c. **Present to user** — Show the task results using this format:
+      ```
+      Task {N}/{TOTAL}: {TASK_TITLE}
+        Status: {pass/fail}
+        Tests: {count} written, all passing
+        Files modified: {list}
+        Concerns: {any issues}
+
+      Previously completed:
+        Task 1: {title} — committed ({hash})
+        Task 2: {title} — committed ({hash})
+      ```
+      Then ask: "Task N is done — tests pass and code is cleaned up. Any feedback or adjustments before I commit and move to the next task?"
+
+   d. **Handle feedback** — See Review Gate Protocol below.
+
+   e. **Commit on approval** — When the user approves, the orchestrator commits directly:
+      ```bash
+      git add {files from subagent summary}
+      git commit -m "{commit message per project format}"
+      ```
+      The commit message should reference the task (e.g., `feat(auth): add token validation - task 2/5`). Do NOT include workflow artifacts (`docs/workflow/`).
+
+   f. **Advance** — Move to the next task and repeat from step 3a.
+
+4. **All tasks complete** — When all tasks are committed and tests pass, announce Phase 3 is done and proceed to Phase 4 detection.
+
+## Review Gate Protocol
+
+After every subagent returns, the orchestrator manages the user review:
+
+### User Approves
+
+- **Phases 1, 2, 4:** Proceed to the next phase (or end the workflow).
+- **Phase 3:** Commit the task (orchestrator does the commit), then dispatch the next task's subagent.
+
+### User Requests Changes
+
+1. Collect the user's feedback.
+2. Dispatch a **new** subagent with:
+   - The same phase reference and context as before
+   - The user's feedback as an additional instruction
+   - A note that files on disk already contain the previous subagent's work — the new subagent should modify in place, not start from scratch
+3. When the new subagent returns, present updated results to the user.
+4. Repeat until the user approves.
+
+### Subagent Returned Clarifying Questions (Phase 1)
+
+If the Phase 1 subagent returns questions instead of a completed SPEC.md:
+1. Present the questions to the user.
+2. Collect answers.
+3. Dispatch a new Phase 1 subagent with the original request plus the user's answers.
+
+### Subagent Returned an Error
+
+See Error Handling below.
+
+## Error Handling
+
+When a subagent fails or returns incomplete results:
+
+1. **Report to user** — Show what the subagent reported: error message, partial results, files that may have been modified.
+2. **Offer options:**
+   - **Retry** — Dispatch a new subagent with the same inputs. The new subagent will find any partial file writes from the failed attempt on disk and must handle that state.
+   - **Retry with guidance** — User provides additional context or constraints, and a new subagent is dispatched with this guidance.
+   - **Skip** (Phase 3 tasks only) — Mark the task as skipped and move to the next one. The user can come back to it later.
+   - **Abort** — Use the Abort Protocol.
+3. **Context overflow** — If a subagent signals it is running low on context (returns partial results with a note), the orchestrator dispatches a continuation subagent with the partial state and instructions to pick up where the previous one left off.
 
 ## Projects Without a Test Suite
 
@@ -112,6 +258,11 @@ Not every project has testing infrastructure. If the project has no test command
 - **User reviews each task.** In Phase 3, the user reviews after each task's cycle — not just at the end of the phase.
 - **Read CLAUDE.md first.** Every project has different commands, conventions, and skills.
 - **One phase per session.** Keep context clean. The user can continue in the same session if they want, but the default is one phase per session.
+- **Orchestrator never writes project files directly.** All file creation, code writing, and test execution happen inside subagents. The orchestrator only performs git commits (Phase 3) and manages user interaction.
+- **Subagents never interact with the user.** All user-facing communication goes through the orchestrator. Subagents return structured summaries; the orchestrator presents results and collects feedback.
+- **One subagent per unit of work.** Phases 1, 2, and 4 each get one subagent. Phase 3 gets one subagent per task. Never dispatch a single subagent for the entire Phase 3.
+- **New subagent for changes, never re-enter.** If the user requests changes after reviewing subagent output, dispatch a fresh subagent with the feedback. Do not attempt to continue a previous subagent's context.
+- **Abort stays in the orchestrator.** The abort protocol is never delegated to a subagent. If the user says "abort" at any point, handle it directly.
 
 ## Abort Protocol
 
