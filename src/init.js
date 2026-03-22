@@ -1,13 +1,29 @@
 import path from "node:path";
-import { copyTemplates, skillExists } from "./utils.js";
+import fs from "node:fs/promises";
+import { copyTemplates, resolveGlobalDir } from "./utils.js";
 
 const SKILL_DIR = ".claude/skills/dev-workflow";
 
-export async function init(projectDir, options = {}) {
-  const targetDir = path.join(projectDir, SKILL_DIR);
-  const exists = await skillExists(projectDir);
+function resolveTargetDir(projectDir, scope) {
+  if (scope === "global") return resolveGlobalDir();
+  return path.join(projectDir, SKILL_DIR);
+}
 
-  if (!exists) {
+async function exists(targetDir) {
+  try {
+    await fs.access(path.join(targetDir, "SKILL.md"));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function init(projectDir, options = {}) {
+  const scope = options.scope || "local";
+  const targetDir = resolveTargetDir(projectDir, scope);
+  const alreadyExists = await exists(targetDir);
+
+  if (!alreadyExists) {
     await copyTemplates(targetDir);
     return;
   }
@@ -17,7 +33,22 @@ export async function init(projectDir, options = {}) {
   }
 }
 
-export async function update(projectDir) {
+export async function update(projectDir, options = {}) {
+  const scope = options?.scope;
+
+  if (scope) {
+    const targetDir = resolveTargetDir(projectDir, scope);
+    const alreadyExists = await exists(targetDir);
+    if (!alreadyExists) {
+      throw new Error(
+        "No installation found. Run `dev-workflow init` first."
+      );
+    }
+    await copyTemplates(targetDir);
+    return;
+  }
+
+  // Legacy behavior: update local
   const targetDir = path.join(projectDir, SKILL_DIR);
   await copyTemplates(targetDir);
 }
