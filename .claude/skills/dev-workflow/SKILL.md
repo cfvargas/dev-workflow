@@ -38,6 +38,7 @@ Not every task needs the full 4-phase ceremony. Classify the task before startin
 
 **Simple** — bugfix, config change, small tweak, single-file change:
 → Skip Phase 1. Flow: `PLAN → IMPLEMENT → VERIFY`
+→ Phase 2 (PLAN) still creates the feature branch — no code touches the base branch directly.
 
 **Standard** — new feature, multi-file change, domain logic, anything where "obvious" business rules aren't obvious:
 → Full flow: `SPEC → PLAN → IMPLEMENT → VERIFY`
@@ -98,6 +99,7 @@ Each phase has detailed instructions in a reference file. Read ONLY the referenc
 ## Rules
 
 - **Artifacts are the source of truth.** Every decision lives in SPEC.md or PLAN.md, not in conversation context.
+- **Branch before code.** Every task — simple or standard — must have a `feature/<name>` branch created before any code is written. Never commit directly to the base branch.
 - **Tests before code.** Always. Within each task, write failing tests before implementation.
 - **User reviews each task.** In Phase 3, the user reviews after each task's RED → GREEN → REFACTOR cycle — not just at the end of the phase.
 - **Read CLAUDE.md first.** Every project has different commands, conventions, and skills.
