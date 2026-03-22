@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs/promises";
@@ -11,20 +11,27 @@ const PROJECT_ROOT = path.resolve(import.meta.dirname, "..");
 const CLI_PATH = path.join(PROJECT_ROOT, "bin", "dev-workflow.js");
 const SKILL_DIR = ".claude/skills/dev-workflow";
 
+let tmpDirs = [];
+let fakeHome;
+
 function runCli(args = [], options = {}) {
   return execFileAsync(process.execPath, [CLI_PATH, ...args], {
     timeout: 10_000,
+    env: { ...process.env, HOME: fakeHome },
     ...options,
   });
 }
-
-let tmpDirs = [];
 
 async function makeTmpDir() {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "dev-workflow-cli-"));
   tmpDirs.push(dir);
   return dir;
 }
+
+beforeEach(async () => {
+  fakeHome = await fs.mkdtemp(path.join(os.tmpdir(), "dev-workflow-home-"));
+  tmpDirs.push(fakeHome);
+});
 
 afterEach(async () => {
   for (const dir of tmpDirs) {
@@ -44,31 +51,113 @@ describe("CLI: dev-workflow", () => {
     expect(stdout).toContain("Usage");
     expect(stdout).toContain("init");
     expect(stdout).toContain("update");
+    expect(stdout).toContain("status");
+    expect(stdout).toContain("--local");
   });
 
-  it("init command creates .claude/skills/dev-workflow/ in cwd", async () => {
+  it("unknown command exits with error", async () => {
+    await expect(runCli(["foobar"])).rejects.toThrow();
+  });
+});
+
+describe("CLI: init", () => {
+  it("installs to global dir by default", async () => {
     const tmpDir = await makeTmpDir();
     await runCli(["init"], { cwd: tmpDir });
 
-    const skillDir = path.join(tmpDir, SKILL_DIR);
-    const stat = await fs.stat(skillDir);
+    const globalSkillDir = path.join(fakeHome, SKILL_DIR);
+    const stat = await fs.stat(globalSkillDir);
     expect(stat.isDirectory()).toBe(true);
 
-    const skillMd = path.join(skillDir, "SKILL.md");
+    const skillMd = path.join(globalSkillDir, "SKILL.md");
     const content = await fs.readFile(skillMd, "utf-8");
+    expect(content.length).toBeGreaterThan(0);
+
+    // Should NOT exist locally
+    await expect(fs.access(path.join(tmpDir, SKILL_DIR))).rejects.toThrow();
+  });
+
+  it("installs to local dir with --local flag", async () => {
+    const tmpDir = await makeTmpDir();
+    await runCli(["init", "--local"], { cwd: tmpDir });
+
+    const localSkillDir = path.join(tmpDir, SKILL_DIR);
+    const stat = await fs.stat(localSkillDir);
+    expect(stat.isDirectory()).toBe(true);
+
+    // Should NOT exist globally
+    await expect(fs.access(path.join(fakeHome, SKILL_DIR))).rejects.toThrow();
+  });
+});
+
+describe("CLI: update", () => {
+  it("updates global when only global exists", async () => {
+    const tmpDir = await makeTmpDir();
+    await runCli(["init"], { cwd: tmpDir });
+
+    const skillMdPath = path.join(fakeHome, SKILL_DIR, "SKILL.md");
+    await fs.writeFile(skillMdPath, "OLD_CONTENT");
+
+    await runCli(["update"], { cwd: tmpDir });
+
+    const content = await fs.readFile(skillMdPath, "utf-8");
+    expect(content).not.toBe("OLD_CONTENT");
     expect(content.length).toBeGreaterThan(0);
   });
 
-  it("update command creates files in cwd", async () => {
+  it("updates local when only local exists", async () => {
     const tmpDir = await makeTmpDir();
+    await runCli(["init", "--local"], { cwd: tmpDir });
+
+    const skillMdPath = path.join(tmpDir, SKILL_DIR, "SKILL.md");
+    await fs.writeFile(skillMdPath, "OLD_CONTENT");
+
     await runCli(["update"], { cwd: tmpDir });
 
-    const skillDir = path.join(tmpDir, SKILL_DIR);
-    const stat = await fs.stat(skillDir);
-    expect(stat.isDirectory()).toBe(true);
-
-    const skillMd = path.join(skillDir, "SKILL.md");
-    const content = await fs.readFile(skillMd, "utf-8");
+    const content = await fs.readFile(skillMdPath, "utf-8");
+    expect(content).not.toBe("OLD_CONTENT");
     expect(content.length).toBeGreaterThan(0);
+  });
+
+  it("shows error when no installation exists", async () => {
+    const tmpDir = await makeTmpDir();
+    await expect(runCli(["update"], { cwd: tmpDir })).rejects.toThrow();
+  });
+});
+
+describe("CLI: status", () => {
+  it("shows 'none' when no installation exists", async () => {
+    const tmpDir = await makeTmpDir();
+    const { stdout } = await runCli(["status"], { cwd: tmpDir });
+    expect(stdout).toContain("not installed");
+  });
+
+  it("shows global when only global exists", async () => {
+    const tmpDir = await makeTmpDir();
+    await runCli(["init"], { cwd: tmpDir });
+
+    const { stdout } = await runCli(["status"], { cwd: tmpDir });
+    expect(stdout).toContain("global");
+    expect(stdout).toContain("active");
+  });
+
+  it("shows local when only local exists", async () => {
+    const tmpDir = await makeTmpDir();
+    await runCli(["init", "--local"], { cwd: tmpDir });
+
+    const { stdout } = await runCli(["status"], { cwd: tmpDir });
+    expect(stdout).toContain("local");
+    expect(stdout).toContain("active");
+  });
+
+  it("shows both and marks local as active when both exist", async () => {
+    const tmpDir = await makeTmpDir();
+    await runCli(["init"], { cwd: tmpDir });
+    await runCli(["init", "--local"], { cwd: tmpDir });
+
+    const { stdout } = await runCli(["status"], { cwd: tmpDir });
+    expect(stdout).toContain("local");
+    expect(stdout).toContain("global");
+    expect(stdout).toContain("precedence");
   });
 });
