@@ -1,0 +1,17 @@
+{
+  "name": "dev-workflow",
+  "version": "1.0.0",
+  "type": "module",
+  "bin": {
+    "dev-workflow": "./bin/dev-workflow.js"
+  },
+  "scripts": {
+    "test": "vitest"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "vitest": "^3.1.1"
+  }
+}
