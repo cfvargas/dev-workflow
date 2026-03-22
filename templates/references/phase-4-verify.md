@@ -10,13 +10,15 @@
 
 ### 1. Run Full Verification Suite
 
-Run all quality checks sequentially:
+Run quality checks from CLAUDE.md. Only run commands that are actually configured in the project:
 
 ```bash
-<test-command> && <lint-command> && <type-check-command>
+<test-command>                    # always run
+<lint-command>                    # only if defined in CLAUDE.md
+<type-check-command>              # only if defined in CLAUDE.md
 ```
 
-All must pass. If anything fails, fix it and re-run. Do not proceed with failures.
+If CLAUDE.md doesn't define a lint or type-check command, skip it — don't guess or use defaults. All configured checks must pass. If anything fails, fix it and re-run. Do not proceed with failures.
 
 ### 2. Present Summary
 
@@ -34,6 +36,24 @@ Ask the user how to proceed:
 2. **Review changes first** — let the user inspect the diff before committing
 3. **Make adjustments** — address any final feedback
 
+**PR body template:**
+```markdown
+## Summary
+<1-3 sentences: what this PR does and why, derived from the spec's Purpose section>
+
+## Changes
+- <bullet list of key changes>
+
+## Test plan
+- <how acceptance criteria were verified>
+```
+
+**After creating the PR**, check if CI passes. If CI fails:
+1. Read the failure logs
+2. Fix the issue locally
+3. Push the fix — do NOT force-push, just add a new commit
+4. Confirm CI passes before moving on
+
 **When committing:**
 - NEVER include workflow artifacts (`docs/workflow/`)
 - Only stage source code and test files
@@ -41,16 +61,17 @@ Ask the user how to proceed:
 
 ### 4. Release & Milestone
 
-Check the project's `CLAUDE.md` for versioning, milestone, and release conventions. If conventions are defined, follow them. If they are NOT defined (or `CLAUDE.md` doesn't exist), ask the user:
+This step is not optional when the project has versioning or milestone conventions in CLAUDE.md — if the project defines them, you must follow through.
 
-> "Would you like to set up a milestone and release for this PR? (yes/no)"
+Check the project's `CLAUDE.md` for versioning, milestone, and release conventions:
+- **Conventions exist:** Follow them. Always ask the user about version bump and milestone assignment.
+- **No conventions defined** (or no `CLAUDE.md`): Ask the user: "Would you like to set up a milestone and release for this PR?"
+- If the user explicitly declines, skip to the next step.
 
-If the user says no, skip to the next step.
-
-**Version bump:**
+**Version bump (this is the only place where version gets bumped — not in Phase 3):**
 - Bump the version in the appropriate file (e.g., `package.json`, `Cargo.toml`, `pyproject.toml`) according to the versioning scheme (semver: PATCH for fixes, MINOR for features, MAJOR for breaking changes).
 - If the project has no versioning convention, ask the user what version to use.
-- This should already be part of the PR from Phase 3. If not, add it now.
+- Commit the version bump separately (e.g., `chore: bump version to 1.4.0`).
 
 **Milestone:**
 - Check if open milestones exist in the repo.
@@ -63,22 +84,20 @@ If the user says no, skip to the next step.
 
 ### 5. Clean Up Workflow Artifacts
 
-After the code is committed/PR is created, offer to clean up the workflow directory:
+Workflow artifacts (`docs/workflow/`) are local working documents that should never be committed to git. Delete them before creating the PR:
 
 ```bash
 rm -rf docs/workflow/<feature-name>
-```
-
-If `docs/workflow/` is now empty, remove it too:
-```bash
 rmdir docs/workflow 2>/dev/null
 ```
 
-The user may choose to keep artifacts for reference — ask before deleting. If kept, they should NOT be committed (they're already in `.gitignore` or excluded via the "NEVER include workflow artifacts" rule).
+Since these files were never tracked by git, there is nothing to stage — just delete them locally. If for some reason they were accidentally committed earlier, stage the deletion with `git add` and include it in the PR.
 
 ## Exit Criteria
 
 - All quality checks pass (tests, lint, types)
+- Version bumped (if project uses versioning)
+- Milestone assigned to PR (if project uses milestones)
+- Workflow artifacts deleted
 - Code is committed or PR is created
-- Workflow artifacts cleaned up (or user chose to keep them)
 - Workflow complete

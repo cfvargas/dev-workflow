@@ -29,11 +29,13 @@ Work through tasks **one at a time**, in the order defined in PLAN.md. For each 
 └──────────────────────────────────────────────┘
 ```
 
-Do NOT jump ahead to the next task until the user approves the current one. This is the core principle: small iterations with feedback between each one.
+Do NOT jump ahead to the next task until the current one is approved AND committed. The flow for each task is: implement → user approves → commit → next task. No task should be left uncommitted.
 
 ## Step 1: RED — Write Failing Tests
 
 Write ONLY the test files for the current task. Do NOT write any implementation code. Do NOT write tests for other tasks.
+
+Before writing anything, check how existing tests in the project are structured — file extensions (`.test.js` vs `.test.ts` vs `.spec.ts`), directory layout, import patterns, assertion style. New test files must match the project's existing conventions exactly. Creating a `.test.ts` file in a project that uses `.test.js` will cause confusion and likely fail.
 
 Each Given/When/Then from the acceptance criteria should map to at least one test case. Test names should describe the expected behavior, not the implementation detail.
 
@@ -71,6 +73,8 @@ Confirm ALL tests pass. Do NOT run lint or type checks — those run in Phase 4.
 - [ ] Implementation follows project patterns
 - [ ] No features beyond what tests require
 - [ ] Previously passing tests from earlier tasks still pass
+
+**If a previous task's tests break:** This means the current implementation introduced a regression. Do NOT move forward. Diagnose the root cause — it's usually a shared dependency or an assumption that changed. Fix the regression before continuing, and re-run all tests to confirm everything passes.
 
 ## Step 3: REFACTOR & REVIEW
 

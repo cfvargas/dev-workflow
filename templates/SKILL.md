@@ -5,9 +5,8 @@ description: >
   e.g. they say "dev-workflow", "SDD", "workflow", or use /dev-workflow. Do NOT use for
   generic feature requests like "build X" unless they explicitly requested the workflow.
 license: MIT
-compatibility: Any project with tests, git, and CLAUDE.md
+compatibility: Any project with git and CLAUDE.md
 metadata:
-  version: "1.0"
   tags: workflow, sdd, tdd, development, planning, testing, spec-driven
 ---
 
@@ -96,12 +95,21 @@ Each phase has detailed instructions in a reference file. Read ONLY the referenc
 | 3. IMPLEMENT | `references/phase-3-implement.md` | `PLAN.md` + `SPEC.md` | Per-task: tests + code + refactor, user-reviewed |
 | 4. VERIFY | `references/phase-4-verify.md` | All tasks passing | Commit/PR |
 
+## Projects Without a Test Suite
+
+Not every project has testing infrastructure. If the project has no test command in CLAUDE.md (or no test runner configured):
+
+- **Phase 3 adapts:** Instead of the RED → GREEN → REFACTOR loop, use an IMPLEMENT → VERIFY → REFACTOR loop. "Verify" means manually confirming the behavior works (running the app, checking output, etc.) and documenting what was verified.
+- **Encourage adding tests:** Suggest setting up a minimal test framework as the first task in the plan. This is a recommendation, not a hard requirement — the user decides.
+- **Acceptance criteria still apply:** Even without automated tests, each task's acceptance criteria from the spec must be verified before moving on.
+
 ## Rules
 
-- **Artifacts are the source of truth.** Every decision lives in SPEC.md or PLAN.md, not in conversation context.
+- **Artifacts are the source of truth.** Every decision lives in SPEC.md or PLAN.md, not in conversation context. These files are working documents — they get deleted in Phase 4 before creating the PR.
 - **Branch before code.** Every task — simple or standard — must have a `feature/<name>` branch created before any code is written. Never commit directly to the base branch.
-- **Tests before code.** Always. Within each task, write failing tests before implementation.
-- **User reviews each task.** In Phase 3, the user reviews after each task's RED → GREEN → REFACTOR cycle — not just at the end of the phase.
+- **Tests before code.** When the project has a test runner, always write failing tests before implementation. If there's no test infrastructure, verify behavior manually against acceptance criteria.
+- **Commit per task.** Each completed task gets its own commit immediately after user approval — before starting the next task. This keeps the git history granular and reviewable.
+- **User reviews each task.** In Phase 3, the user reviews after each task's cycle — not just at the end of the phase.
 - **Read CLAUDE.md first.** Every project has different commands, conventions, and skills.
 - **One phase per session.** Keep context clean. The user can continue in the same session if they want, but the default is one phase per session.
 
@@ -109,16 +117,15 @@ Each phase has detailed instructions in a reference file. Read ONLY the referenc
 
 If the user wants to abandon a workflow at any point:
 
-1. **Ask for confirmation** — "Are you sure? This will clean up the branch and workflow artifacts."
-2. **Clean up the branch** (if created):
-   ```bash
-   git checkout <base-branch>
-   git branch -D feature/<feature-name>
-   ```
-3. **Remove workflow artifacts:**
-   ```bash
-   rm -rf docs/workflow/<feature-name>
-   ```
-4. **Confirm cleanup** — list what was removed so the user knows the state is clean.
-
-If the user wants to **pause** (not abort), just stop. The artifacts persist and Phase Detection will pick up where they left off in a future session.
+1. **Ask for confirmation** — "Are you sure you want to abort? I can also just pause if you want to come back later."
+2. **Offer options:**
+   - **Pause** (default) — Stop here. Artifacts and branch persist. Phase Detection picks up later.
+   - **Abort, keep branch** — Remove workflow artifacts (`rm -rf docs/workflow/<feature-name>`) but keep the branch (useful if there's salvageable code).
+   - **Full abort** — Remove everything:
+     ```bash
+     git checkout <base-branch>
+     git branch -D feature/<feature-name>
+     rm -rf docs/workflow/<feature-name>
+     ```
+3. **Confirm cleanup** — list exactly what was removed so the user knows the state is clean.
+4. If `docs/workflow/` is now empty, remove it too: `rmdir docs/workflow 2>/dev/null`
