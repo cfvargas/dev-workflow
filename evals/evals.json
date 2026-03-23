@@ -1,0 +1,97 @@
+{
+  "skill_name": "dev-workflow",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Usa el dev-workflow para agregar un comando 'uninstall' al CLI que elimine los archivos del skill de la ubicación global o local. Debe preguntar al usuario cuál quiere desinstalar si ambas existen.",
+      "expected_output": "Should dispatch Phase 1 to a subagent via the Agent tool. The subagent produces SPEC.md inside docs/workflow/<feature-name>/. The orchestrator presents the subagent's summary to the user for review. Phase 1 does NOT create a branch. Should ask clarifying questions about edge cases before writing the spec.",
+      "files": [],
+      "assertions": [
+        { "name": "classifies-as-standard", "description": "Identifies the task as Standard complexity (not Simple)" },
+        { "name": "starts-at-phase-1", "description": "Begins at Phase 1 (SPEC), not Phase 2" },
+        { "name": "dispatches-subagent", "description": "Dispatches Phase 1 to a subagent via the Agent tool instead of executing inline" },
+        { "name": "orchestrator-stays-minimal", "description": "The orchestrator only handles phase detection, dispatch, and review — does not explore code or write files directly" },
+        { "name": "subagent-explores-codebase", "description": "The subagent (not the orchestrator) explores existing CLI code (bin/, src/) before writing spec" },
+        { "name": "asks-clarifying-questions", "description": "Clarifying questions are surfaced to the user — either the subagent returns them or the orchestrator presents them" },
+        { "name": "produces-spec-md", "description": "Produces a SPEC.md with Purpose, Use Cases, Requirements, Edge Cases, Acceptance Criteria, Out of Scope" },
+        { "name": "no-branch-created", "description": "Does NOT create a git branch (that happens in Phase 2)" },
+        { "name": "creates-workflow-directory", "description": "Creates docs/workflow/<feature-name>/ directory" },
+        { "name": "presents-summary-for-review", "description": "The orchestrator presents the subagent's return summary to the user for approval" }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Quiero usar SDD para hacer un fix — el comando 'status' no muestra la versión del skill instalado, solo dice 'active'. Debería mostrar también la versión que tiene instalada el usuario comparada con la última disponible en npm.",
+      "expected_output": "Should classify as 'simple', skip Phase 1, dispatch Phase 2 to a subagent. The subagent creates both docs/workflow/<name>/ and feature/<name> with the SAME name. Must produce PLAN.md with tests-first task ordering. The orchestrator presents the summary for review.",
+      "files": [],
+      "assertions": [
+        { "name": "classifies-as-simple", "description": "Classifies the task as Simple complexity" },
+        { "name": "skips-phase-1", "description": "Skips Phase 1 (SPEC), goes directly to Phase 2" },
+        { "name": "dispatches-subagent", "description": "Dispatches Phase 2 to a subagent via the Agent tool instead of executing inline" },
+        { "name": "orchestrator-stays-minimal", "description": "The orchestrator only handles complexity triage, dispatch, and review — does not write PLAN.md directly" },
+        { "name": "branch-matches-workflow-name", "description": "Branch name and workflow directory use the SAME feature-name" },
+        { "name": "creates-feature-branch", "description": "Creates a feature/<name> branch" },
+        { "name": "produces-plan-md", "description": "Produces a PLAN.md with Architecture Decisions, File Map, and Tasks" },
+        { "name": "tasks-ordered-tests-first", "description": "Tasks in the plan are ordered with test tasks before implementation tasks" },
+        { "name": "presents-summary-for-review", "description": "The orchestrator presents the subagent's return summary to the user for approval" }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I already have a SPEC.md and PLAN.md in docs/workflow/add-dry-run-flag/. The plan has 3 tasks. I've finished tasks 1 and 2 (tests pass). I'm on branch feature/add-dry-run-flag. Continue the workflow from where I left off — run /dev-workflow",
+      "expected_output": "Should detect Phase 3. Dispatch a subagent for task 3 only (not the whole phase). The subagent runs RED-GREEN-REFACTOR for task 3 and returns results. The orchestrator presents results, commits after approval, then proceeds to Phase 4 via another subagent.",
+      "files": [],
+      "assertions": [
+        { "name": "detects-phase-3", "description": "Correctly detects the workflow is in Phase 3 (IMPLEMENT)" },
+        { "name": "verifies-correct-branch", "description": "Verifies it is on branch feature/add-dry-run-flag, not main" },
+        { "name": "identifies-completed-tasks", "description": "Identifies tasks 1 and 2 as already completed" },
+        { "name": "dispatches-per-task-subagent", "description": "Dispatches a subagent for task 3 ONLY — one subagent per task, not one for the whole phase" },
+        { "name": "subagent-does-not-commit", "description": "The Phase 3 subagent does NOT commit — it returns results and the orchestrator commits after user approval" },
+        { "name": "orchestrator-commits-after-approval", "description": "The orchestrator performs the git commit after presenting results and receiving user approval" },
+        { "name": "proceeds-to-phase-4", "description": "Advances to Phase 4 (VERIFY) after task 3 is done" },
+        { "name": "phase-4-dispatched-as-subagent", "description": "Phase 4 is also dispatched to a subagent, not executed inline" },
+        { "name": "asks-about-milestone", "description": "Asks about milestone assignment in Phase 4 (project uses milestones per CLAUDE.md)" }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Usa el dev-workflow para agregar validación de inputs al comando 'init'. Si el directorio destino no existe, debe mostrar un error claro. Si ya tiene un skill instalado, preguntar si quiere sobreescribir.",
+      "expected_output": "Should classify as standard. Dispatch Phase 1 to a subagent. If the subagent cannot resolve ambiguity, it should return clarifying questions instead of a completed SPEC.md. The orchestrator collects answers and dispatches a NEW subagent (not the same one).",
+      "files": [],
+      "assertions": [
+        { "name": "classifies-as-standard", "description": "Identifies the task as Standard complexity" },
+        { "name": "dispatches-phase-1-subagent", "description": "Dispatches Phase 1 to a subagent via the Agent tool" },
+        { "name": "subagent-returns-questions", "description": "If ambiguity exists, the subagent returns clarifying questions in its summary instead of writing an incomplete SPEC.md" },
+        { "name": "new-subagent-for-answers", "description": "After collecting answers, the orchestrator dispatches a NEW subagent with the answers — does not re-enter the previous subagent" },
+        { "name": "orchestrator-never-writes-files", "description": "The orchestrator does not write SPEC.md or any workflow files directly — only subagents write files" },
+        { "name": "abort-handled-by-orchestrator", "description": "If the user says 'abort' at any point, the orchestrator handles it directly without dispatching a subagent" }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Estoy en Phase 3 de un workflow con 5 tasks. El subagente del task 3 falló — los tests pasan pero rompió los tests del task 2. ¿Qué debería hacer el orquestador?",
+      "expected_output": "The orchestrator should detect the regression from the subagent's return summary, report the failure to the user, and offer options: retry with a new subagent (including guidance about the regression), skip the task, or abort. It should NOT attempt to fix the regression itself.",
+      "files": [],
+      "assertions": [
+        { "name": "detects-regression-from-summary", "description": "The orchestrator reads the subagent's return summary which reports the regression" },
+        { "name": "reports-failure-to-user", "description": "The orchestrator presents the regression details to the user" },
+        { "name": "offers-retry-options", "description": "Offers retry (new subagent with guidance), retry with different approach, skip task, or abort" },
+        { "name": "dispatches-new-subagent-on-retry", "description": "If user chooses retry, dispatches a NEW subagent with the regression context — does not re-enter the failed subagent" },
+        { "name": "orchestrator-does-not-fix-directly", "description": "The orchestrator does not attempt to fix code or tests directly — it delegates to a subagent" }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "El usuario pide cambios después de que el subagente de Phase 2 entrega el PLAN.md. El usuario dice: 'no me gusta la arquitectura, quiero usar un patrón diferente para el task 2'. ¿Qué hace el orquestador?",
+      "expected_output": "The orchestrator should dispatch a NEW subagent with the user's feedback plus the current PLAN.md state. It should NOT edit the PLAN.md directly or re-enter the previous subagent.",
+      "files": [],
+      "assertions": [
+        { "name": "dispatches-new-subagent-with-feedback", "description": "Dispatches a new subagent with the user's feedback and the current PLAN.md path" },
+        { "name": "does-not-edit-directly", "description": "The orchestrator does NOT edit PLAN.md directly — a subagent handles modifications" },
+        { "name": "does-not-reenter-previous-subagent", "description": "Does NOT attempt to continue the previous Phase 2 subagent — dispatches a fresh one" },
+        { "name": "includes-current-artifact-state", "description": "The new subagent receives the path to the existing PLAN.md so it can modify in place rather than starting from scratch" },
+        { "name": "presents-updated-summary", "description": "After the new subagent finishes, the orchestrator presents the updated summary for another review cycle" }
+      ]
+    }
+  ]
+}

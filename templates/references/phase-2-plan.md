@@ -1,5 +1,20 @@
 # Phase 2: PLAN — How to Build It
 
+## Subagent Context
+
+You are a subagent executing Phase 2 (PLAN) of the SDD workflow. Your job is to produce an implementation plan (`PLAN.md`), create the feature branch, and return a structured summary to the orchestrator. You do NOT interact with the user directly — all user communication goes through the orchestrator that dispatched you.
+
+**What you received from the orchestrator:**
+- Feature name
+- Project root path
+- Path to SPEC.md (read it first) — or, if Phase 1 was skipped (simple task), the user's request description
+- Base branch name
+- Project settings from CLAUDE.md (test command, commit format, etc.)
+
+**Before you begin:** Read the project's `CLAUDE.md` (or `AGENTS.md`) for conventions, domain context, and project-specific skills.
+
+---
+
 **Goal:** Translate the spec into a technical implementation plan with ordered, self-contained tasks. Create the feature branch.
 
 **Input:** `docs/workflow/<feature-name>/SPEC.md` (read it first). If Phase 1 was skipped (simple task), gather context from the user's request.
@@ -39,9 +54,9 @@ else
 fi
 ```
 
-**If the rebase has conflicts:** Stop the rebase (`git rebase --abort`), inform the user about the conflicting files, and ask how to proceed — merge instead, resolve manually, or start fresh.
+**If the rebase has conflicts:** Stop the rebase (`git rebase --abort`) and report the conflicting files in your return summary. The orchestrator will handle user interaction about how to proceed.
 
-If the branch exists from a previous attempt, inform the user and ask whether to continue from the existing branch or start fresh (`git branch -D` + recreate).
+If the branch exists from a previous attempt, note this in your return summary so the orchestrator can inform the user.
 
 ### 4. Research the Codebase
 
@@ -103,9 +118,9 @@ Each task is self-contained — the agent executing it should not need to guess 
 - Edge cases from spec that need explicit test coverage
 ```
 
-### 6. Review the Plan
+### 6. Self-Check
 
-Before presenting to the user, self-check:
+Before returning results, verify:
 - Are there too many tasks? 3 tasks is better than 7 if 3 covers it.
 - Is the agent creating unnecessary abstractions?
 - Do test tasks come before implementation tasks?
@@ -113,14 +128,23 @@ Before presenting to the user, self-check:
 - Are acceptance criteria from the spec mapped to specific tasks?
 - **No version bump task.** Version bumping happens in Phase 4, not here. Do not include it as a task in the plan.
 
-### 7. Present for Review
-
-Show the plan to the user. The plan is the last checkpoint before code gets written — it's worth spending time making sure it's pragmatic.
-
 ## Exit Criteria
 
 - Feature branch `feature/<feature-name>` created from base branch
 - `PLAN.md` is written at `docs/workflow/<feature-name>/PLAN.md`
 - Tasks ordered: tests first, then implementation, then refactoring
-- User has reviewed and approved the plan
-- The user can close this session and start Phase 3 in a new one
+
+## Return Summary
+
+When you are done, return a structured summary to the orchestrator in this format:
+
+- **Status:** pass | fail (error encountered)
+- **Branch:** name of the branch created or checked out (e.g., `feature/add-ssl-filters`)
+- **Branch note:** whether it was newly created or already existed
+- **PLAN.md summary:**
+  - Complexity: simple | standard
+  - Number of tasks
+  - Task list with titles and types (brief)
+  - Architecture decisions (brief)
+- **Rebase conflicts:** yes/no — if yes, list conflicting files
+- **Issues or concerns:** anything the orchestrator should know

@@ -1,6 +1,6 @@
 {
   "name": "dev-workflow",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "CLI tool that installs the Spec Driven Development (SDD) workflow skill into Claude Code projects",
   "type": "module",
   "bin": {
