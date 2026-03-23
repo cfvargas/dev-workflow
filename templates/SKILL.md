@@ -101,6 +101,8 @@ You are a subagent executing Phase N ({PHASE_NAME}) for the `{FEATURE_NAME}` fea
 - **Branch:** `feature/{FEATURE_NAME}`
 - **Project root:** {PROJECT_ROOT}
 - **Test command:** {TEST_COMMAND}
+- **Base branch:** {BASE_BRANCH}
+- **Commit format:** {COMMIT_FORMAT}
 - **Spec:** {SPEC_PATH or "N/A — this phase creates it"}
 - **Plan:** {PLAN_PATH or "N/A — this phase creates it"}
 
