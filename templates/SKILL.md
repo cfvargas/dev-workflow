@@ -88,6 +88,16 @@ When starting a session, detect the current phase by checking state in `docs/wor
 
 Each phase runs in a **subagent** via the Agent tool. The orchestrator (you) never executes phase work directly — you dispatch it, receive results, and manage user interaction. This keeps your context window minimal across the full workflow lifecycle.
 
+### Inline Execution Fallback
+
+The Agent tool may not be available in all environments (e.g., sandboxed worktrees, restricted tool sets). When the Agent tool is unavailable:
+
+1. **Detect early** — Before dispatching the first phase, check if the Agent tool is available. If not, switch to inline execution mode for the entire workflow.
+2. **Follow the same phase references** — Read and follow the phase reference file (`references/phase-N-*.md`) exactly as a subagent would. The phase instructions, exit criteria, and return summary format still apply.
+3. **Maintain the orchestrator/executor boundary mentally** — Even when executing inline, separate the "orchestrator" concerns (phase detection, review gates, commits, user interaction) from the "executor" concerns (codebase exploration, file creation, test execution). Complete all executor work first, then switch to orchestrator mode to present results.
+4. **Review gates still apply** — After completing phase work inline, present results to the user in the same format as if a subagent had returned them. Do not skip the review gate just because execution was inline.
+5. **Log the fallback** — Note in your output that the Agent tool was unavailable and execution was performed inline.
+
 ### Dispatch Template
 
 For each phase, call the Agent tool with a prompt following this structure:
@@ -121,13 +131,9 @@ You are a subagent executing Phase N ({PHASE_NAME}) for the `{FEATURE_NAME}` fea
 
 ## Return Summary
 
-When done, return:
-- **Status:** pass/fail
-- **Files modified:** list
-- **Key changes:** summary of what was produced
-- **Test results:** pass/fail + relevant output (if applicable)
-- **Issues or concerns:** anything the orchestrator should know
-- **User input needed:** questions or decisions that require user response
+Return a structured summary using the exact format (field names and ordering) required by the referenced phase reference file's **“Return Summary”** section (`{PHASE_REFERENCE_PATH}`).
+
+If the phase reference requires additional fields beyond the common ones, include them; if it omits a field, do not invent it.
 ```
 
 ### Phase Reference Table
@@ -197,13 +203,41 @@ Phase 3 is special: the orchestrator dispatches **one subagent per task**, not o
       ```
       The commit message should reference the task (e.g., `feat(auth): add token validation - task 2/5`). Do NOT include workflow artifacts (`docs/workflow/`).
 
+      **If the commit fails** (sandbox restriction, permission error, worktree limitation):
+      - Note the failure and the reason.
+      - Do NOT halt the workflow. The implementation is complete on disk.
+      - Inform the user that the commit could not be made and why.
+      - Proceed to the next task (or Phase 4 if all tasks are done) with the understanding that commits will be batched later.
+      - Track uncommitted tasks so Phase 4 can handle them.
+
    f. **Advance** — Move to the next task and repeat from step 3a.
 
 4. **All tasks complete** — When all tasks are committed and tests pass, announce Phase 3 is done and proceed to Phase 4 detection.
 
 ## Review Gate Protocol
 
-After every subagent returns, the orchestrator manages the user review:
+After every phase completes (whether via subagent or inline), present results to the user using this format:
+
+```
+Phase {N} ({PHASE_NAME}) Complete — {FEATURE_NAME}
+
+  Complexity: {simple|standard}
+  Status: {pass|questions|fail}
+
+  Summary:
+    {2-4 bullet points of what was produced}
+
+  Files created/modified:
+    {list}
+
+  {Key decisions or concerns, if any}
+
+  Next: Phase {N+1} ({NEXT_PHASE_NAME})
+
+Shall I proceed to Phase {N+1}, or do you have feedback?
+```
+
+For Phase 3 tasks, use the task-specific format defined in the Phase 3 Task Loop section above.
 
 ### User Approves
 
@@ -222,10 +256,12 @@ After every subagent returns, the orchestrator manages the user review:
 
 ### Subagent Returned Clarifying Questions (Phase 1)
 
-If the Phase 1 subagent returns questions instead of a completed SPEC.md:
+If the Phase 1 subagent (or inline executor) returns questions instead of a completed SPEC.md:
 1. Present the questions to the user.
 2. Collect answers.
-3. Dispatch a new Phase 1 subagent with the original request plus the user's answers.
+3. Dispatch a new Phase 1 subagent (or re-execute inline) with the original request plus the user's answers.
+
+**Important:** The subagent should return questions even when it *could* guess the answer from the codebase. The goal is to surface design decisions to the user, not to minimize round trips. A spec built on assumptions is worse than a spec that required one extra exchange.
 
 ### Subagent Returned an Error
 
@@ -254,13 +290,13 @@ Not every project has testing infrastructure. If the project has no test command
 ## Rules
 
 - **Artifacts are the source of truth.** Every decision lives in SPEC.md or PLAN.md, not in conversation context. These files are working documents — they get deleted in Phase 4 before creating the PR.
-- **Branch before code.** Every task — simple or standard — must have a `feature/<name>` branch created before any code is written. Never commit directly to the base branch.
+- **Branch before code.** Every task — simple or standard — must have a `feature/<name>` branch created before any code is written. Never commit directly to the base branch. *Exception:* In worktree environments where branch switching is restricted, the worktree's own branch provides equivalent isolation — note this in the review gate.
 - **Tests before code.** When the project has a test runner, always write failing tests before implementation. If there's no test infrastructure, verify behavior manually against acceptance criteria.
 - **Commit per task.** Each completed task gets its own commit immediately after user approval — before starting the next task. This keeps the git history granular and reviewable.
 - **User reviews each task.** In Phase 3, the user reviews after each task's cycle — not just at the end of the phase.
 - **Read CLAUDE.md first.** Every project has different commands, conventions, and skills.
 - **One phase per session.** Keep context clean. The user can continue in the same session if they want, but the default is one phase per session.
-- **Orchestrator never writes project files directly.** All file creation, code writing, and test execution happen inside subagents. The orchestrator only performs git commits (Phase 3) and manages user interaction.
+- **Orchestrator delegates when possible.** When the Agent tool is available, all file creation, code writing, and test execution happen inside subagents. The orchestrator only performs git commits (Phase 3) and manages user interaction. When the Agent tool is unavailable, the orchestrator executes phase work inline following the phase reference files (see Inline Execution Fallback).
 - **Subagents never interact with the user.** All user-facing communication goes through the orchestrator. Subagents return structured summaries; the orchestrator presents results and collects feedback.
 - **One subagent per unit of work.** Phases 1, 2, and 4 each get one subagent. Phase 3 gets one subagent per task. Never dispatch a single subagent for the entire Phase 3.
 - **New subagent for changes, never re-enter.** If the user requests changes after reviewing subagent output, dispatch a fresh subagent with the feedback. Do not attempt to continue a previous subagent's context.

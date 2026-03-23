@@ -42,6 +42,7 @@ Compile a summary of:
 - Files created and modified
 - Test coverage added (which acceptance criteria are covered)
 - Any decisions made during implementation that deviated from the plan
+- A PR body draft (the `## Summary`, `## Changes`, and `## Test plan` sections), derived from `SPEC.md` (especially the Purpose section) and the implemented artifacts
 
 ### 3. Clean Up Workflow Artifacts
 
@@ -53,6 +54,8 @@ rmdir docs/workflow 2>/dev/null
 ```
 
 Since these files were never tracked by git, there is nothing to stage — just delete them locally. If for some reason they were accidentally committed earlier, stage the deletion with `git add` and include it in the PR.
+
+Important: do NOT rely on reading `docs/workflow/<feature-name>/SPEC.md` after this step. All PR body content should already be prepared in Step 2.
 
 ### 4. Deliver
 
@@ -66,7 +69,7 @@ Create the PR. Stage source and test files, commit with conventional format, pus
 **PR body template:**
 ```markdown
 ## Summary
-<1-3 sentences: what this PR does and why, derived from the spec's Purpose section>
+<Paste/compose from the PR body draft prepared in Step 2 (derived from `SPEC.md` Purpose)>
 
 ## Changes
 - <bullet list of key changes>

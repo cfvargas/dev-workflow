@@ -27,11 +27,23 @@ You are a subagent executing a **single task** from Phase 3 (IMPLEMENT) of the S
 
 **Output:** Tests + implementation code for ONE task, with all tests passing (including previously completed tasks' tests).
 
+## Step 0: Verify Branch
+
+Before writing any code, confirm which branch you are on:
+
+```bash
+git branch --show-current
+```
+
+- If on `feature/<feature-name>`: proceed.
+- If on a worktree branch (e.g., `worktree-agent-*`): proceed — worktree isolation is equivalent to a feature branch.
+- If on the base branch (`main`, `master`, `develop`): switch to the feature branch before continuing. If switching fails, STOP and report the issue.
+
+Log the branch name in your return summary.
+
 ## Precondition
 
 The plan must exist and be approved. If `PLAN.md` doesn't exist, return a failure summary.
-
-You must be on the feature branch (`feature/<feature-name>`), NOT on the base branch. If you are on the base branch, switch to the feature branch before writing any code.
 
 ## Step 1: RED — Write Failing Tests
 
@@ -82,7 +94,15 @@ After the current task's tests pass, run the FULL test suite to check for regres
 <test-command>
 ```
 
-**If a previous task's tests break:** This means the current implementation introduced a regression. Do NOT return with a pass status. Diagnose the root cause — it's usually a shared dependency or an assumption that changed. Fix the regression before continuing, and re-run all tests to confirm everything passes.
+**If a previous task's tests break:** This means the current implementation introduced a regression. Do NOT return with a pass status.
+
+1. **Diagnose:** Find the root cause — it's usually a shared dependency or an assumption that changed.
+2. **Attempt to fix:** Implement the smallest change that addresses the root cause.
+3. **Verify fix:** Re-run the FULL test suite.
+4. **Report:** If the suite still fails, return `fail` and include in your return summary:
+   - which tests failed (and key failure output)
+   - your suspected root cause
+   - what you tried so the orchestrator can decide whether to retry or abort
 
 ## Step 3: REFACTOR
 
