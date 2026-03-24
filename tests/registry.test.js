@@ -47,6 +47,7 @@ function toArrayBuffer(buf) {
 }
 
 afterEach(async () => {
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
   for (const dir of tmpDirs) {
     await fs.rm(dir, { recursive: true, force: true });
