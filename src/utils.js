@@ -15,9 +15,9 @@ const TEMPLATE_FILES = [
   "references/phase-4-verify.md",
 ];
 
-export async function copyTemplates(targetDir) {
+export async function copyTemplates(targetDir, sourceDir = TEMPLATES_DIR) {
   for (const file of TEMPLATE_FILES) {
-    const src = path.join(TEMPLATES_DIR, file);
+    const src = path.join(sourceDir, file);
     const dest = path.join(targetDir, file);
     await fs.mkdir(path.dirname(dest), { recursive: true });
     await fs.copyFile(src, dest);
