@@ -71,6 +71,7 @@ Make the architectural decisions:
 - What files need to be created vs modified?
 - What are the dependencies and contracts?
 - Load relevant project-specific skills from `.claude/skills/`
+- **Address NFRs from the spec:** If the spec includes non-functional requirements (performance, observability, constraints), the architecture decisions must explain HOW each one will be met. The spec says "what" — the plan says "how."
 
 ### 5. Write the Plan
 
