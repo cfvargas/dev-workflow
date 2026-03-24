@@ -92,6 +92,194 @@
         { "name": "includes-current-artifact-state", "description": "The new subagent receives the path to the existing PLAN.md so it can modify in place rather than starting from scratch" },
         { "name": "presents-updated-summary", "description": "After the new subagent finishes, the orchestrator presents the updated summary for another review cycle" }
       ]
+    },
+    {
+      "id": 7,
+      "prompt": "Run /dev-workflow — I need to add support for YAML config files alongside the existing JSON config. Users should be able to use either format. This is a big feature with schema validation, migration tooling, and documentation updates.",
+      "expected_output": "Should classify as standard (multi-file, domain logic). Dispatch Phase 1. The subagent should explore the existing config handling code, identify the JSON config structure, and produce a SPEC.md covering both formats, migration path, and schema validation.",
+      "files": [],
+      "assertions": [
+        { "name": "classifies-as-standard", "description": "Identifies the task as Standard complexity due to multi-file changes and domain logic" },
+        { "name": "starts-at-phase-1", "description": "Begins at Phase 1 (SPEC) — does not skip to Phase 2" },
+        { "name": "dispatches-subagent", "description": "Dispatches Phase 1 to a subagent via the Agent tool" },
+        { "name": "reads-claude-md", "description": "The subagent reads CLAUDE.md to detect project conventions before producing the spec" },
+        { "name": "produces-spec-md", "description": "Produces a SPEC.md with clear acceptance criteria and edge cases" },
+        { "name": "no-branch-created", "description": "Phase 1 does NOT create a git branch" },
+        { "name": "presents-review-gate", "description": "Presents the review gate format with status, summary, files, and next phase prompt" }
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Quiero abortar el workflow. Estoy a mitad del Phase 3, task 2 de 4 ya está committed. Ya no quiero esta feature. /dev-workflow abort",
+      "expected_output": "The orchestrator should handle the abort directly (never delegate abort to a subagent). Should ask for confirmation and offer 3 options: pause, abort keep branch, full abort. Should list what will be removed.",
+      "files": [],
+      "assertions": [
+        { "name": "orchestrator-handles-abort-directly", "description": "The orchestrator handles the abort protocol directly — does NOT dispatch a subagent for abort" },
+        { "name": "asks-confirmation", "description": "Asks the user for confirmation before proceeding with abort" },
+        { "name": "offers-three-options", "description": "Offers: pause (default), abort keep branch, full abort" },
+        { "name": "lists-what-will-be-removed", "description": "Lists exactly what will be removed (workflow directory, branch) for each option" },
+        { "name": "pause-is-default", "description": "Pause is presented as the default/recommended option" }
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "Use SDD to add a --verbose flag to the install command. It's a small change — just pipe through debug output that's already there but suppressed.",
+      "expected_output": "Should classify as simple. Skip Phase 1, go to Phase 2. The plan should be minimal with 1-2 tasks. Branch and workflow directory should use a consistent feature name.",
+      "files": [],
+      "assertions": [
+        { "name": "classifies-as-simple", "description": "Classifies as Simple complexity — single concern, small scope" },
+        { "name": "skips-phase-1", "description": "Skips Phase 1 and goes directly to Phase 2 (PLAN)" },
+        { "name": "dispatches-subagent", "description": "Dispatches Phase 2 to a subagent via the Agent tool" },
+        { "name": "produces-plan-md", "description": "Produces a PLAN.md with minimal tasks (1-2)" },
+        { "name": "creates-feature-branch", "description": "Creates a feature/<name> branch — even simple tasks need a branch" },
+        { "name": "plan-marks-simple", "description": "The PLAN.md header indicates Complexity: simple" }
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "dev-workflow. Tengo dos directorios en docs/workflow/: add-caching/ y fix-timeout/. Ambos tienen PLAN.md. ¿Cuál continúo?",
+      "expected_output": "The orchestrator should detect the ambiguity (multiple workflow directories) and ask the user which feature to continue. It should NOT pick one automatically or dispatch a subagent before resolving the ambiguity.",
+      "files": [],
+      "assertions": [
+        { "name": "detects-multiple-workflows", "description": "Detects that there are multiple workflow directories in docs/workflow/" },
+        { "name": "asks-user-which-feature", "description": "Asks the user which feature they want to continue instead of picking one automatically" },
+        { "name": "does-not-dispatch-before-resolution", "description": "Does NOT dispatch a subagent until the user has clarified which workflow to continue" },
+        { "name": "lists-both-features", "description": "Lists both add-caching and fix-timeout as options for the user" }
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "I want to use the dev-workflow to refactor the error handling across the entire CLI. Right now errors are thrown as raw strings, I want them to use a custom AppError class with error codes. This touches every command file.",
+      "expected_output": "Should classify as standard (multi-file refactor with domain logic). Phase 1 should explore existing error patterns and produce a spec covering the error class design, migration strategy, and which files are affected.",
+      "files": [],
+      "assertions": [
+        { "name": "classifies-as-standard", "description": "Identifies as Standard — multi-file refactor with new domain concept" },
+        { "name": "starts-at-phase-1", "description": "Begins at Phase 1 (SPEC) to define the AppError class design" },
+        { "name": "dispatches-subagent", "description": "Dispatches Phase 1 to a subagent via the Agent tool" },
+        { "name": "subagent-explores-error-patterns", "description": "The subagent explores existing error handling patterns in the codebase before writing the spec" },
+        { "name": "spec-covers-migration", "description": "The SPEC.md addresses migration strategy (how to transition from raw strings to AppError)" },
+        { "name": "presents-summary-for-review", "description": "The orchestrator presents the subagent's summary for user review" }
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "Run the dev-workflow. My project is a Python Flask app — it uses pytest for testing, ruff for linting, and the base branch is 'develop'. I want to add rate limiting to the /api/upload endpoint.",
+      "expected_output": "Should detect project settings from CLAUDE.md (or the user's description): pytest as test command, ruff for lint, develop as base branch. These settings should be passed to the subagent in the dispatch template.",
+      "files": [],
+      "assertions": [
+        { "name": "classifies-as-standard", "description": "Identifies as Standard complexity — new feature with domain logic" },
+        { "name": "detects-project-settings", "description": "Detects or acknowledges project-specific settings: pytest, ruff, develop branch" },
+        { "name": "dispatches-subagent", "description": "Dispatches Phase 1 to a subagent via the Agent tool" },
+        { "name": "passes-settings-to-subagent", "description": "The dispatch template includes detected settings (test command, base branch, lint command)" },
+        { "name": "starts-at-phase-1", "description": "Begins at Phase 1 (SPEC) for the rate limiting feature" }
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "Usa /dev-workflow para... la verdad no estoy seguro de qué quiero. Algo con mejorar el rendimiento del CLI, se siente lento pero no sé dónde está el cuello de botella.",
+      "expected_output": "The request is vague. The orchestrator should still classify and start Phase 1, but the subagent should return clarifying questions rather than guessing at a spec. Questions should help narrow down: which commands are slow, what 'slow' means in numbers, whether there's profiling data, etc.",
+      "files": [],
+      "assertions": [
+        { "name": "does-not-refuse", "description": "Does NOT refuse to start the workflow — vague requests are valid, Phase 1 handles ambiguity" },
+        { "name": "classifies-as-standard", "description": "Classifies as Standard — performance work is inherently multi-faceted" },
+        { "name": "dispatches-phase-1", "description": "Dispatches Phase 1 to a subagent" },
+        { "name": "surfaces-clarifying-questions", "description": "Clarifying questions are surfaced to help narrow the scope (which commands, metrics, profiling)" },
+        { "name": "does-not-write-spec-without-clarity", "description": "Does NOT produce a SPEC.md based on guesses — asks first" }
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "Phase 3, task 1 of 3. The subagent finished but it wrote 0 tests — it went straight to implementation. The code works but there are no test files. What should happen?",
+      "expected_output": "The orchestrator should detect that the RED step was skipped (no tests written). It should report this to the user as an issue and offer to retry with a new subagent that emphasizes the RED-GREEN-REFACTOR cycle.",
+      "files": [],
+      "assertions": [
+        { "name": "detects-missing-tests", "description": "The orchestrator detects that no test files were created despite the project having a test runner" },
+        { "name": "reports-violation-to-user", "description": "Reports to the user that the TDD cycle was not followed — RED step was skipped" },
+        { "name": "offers-retry-with-guidance", "description": "Offers to retry with a new subagent that includes explicit guidance about writing tests first" },
+        { "name": "does-not-approve-without-tests", "description": "Does NOT commit or approve the task without tests when the project has a test runner" },
+        { "name": "orchestrator-does-not-write-tests", "description": "The orchestrator does not write the tests itself — it dispatches a new subagent" }
+      ]
+    },
+    {
+      "id": 15,
+      "prompt": "dev-workflow para agregar un health check endpoint a mi API. El proyecto no tiene tests configurados — no hay test runner, no hay directorio de tests, nada. ¿Cómo adapta el workflow?",
+      "expected_output": "Should detect there's no test infrastructure. Phase 3 should adapt: instead of RED-GREEN-REFACTOR, use IMPLEMENT-VERIFY-REFACTOR. Should suggest (but not require) setting up a test framework. Acceptance criteria still need manual verification.",
+      "files": [],
+      "assertions": [
+        { "name": "detects-no-test-runner", "description": "Detects that the project has no test infrastructure configured" },
+        { "name": "adapts-phase-3", "description": "Acknowledges that Phase 3 will use IMPLEMENT-VERIFY-REFACTOR instead of RED-GREEN-REFACTOR" },
+        { "name": "suggests-test-setup", "description": "Suggests setting up a minimal test framework but does not require it" },
+        { "name": "acceptance-criteria-still-apply", "description": "Notes that acceptance criteria must still be verified even without automated tests" },
+        { "name": "proceeds-with-workflow", "description": "Does NOT refuse to run the workflow — adapts instead" }
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "Phase 4 — all 4 tasks are implemented, tests pass, I'm on branch feature/add-webhooks. SPEC.md and PLAN.md are in docs/workflow/add-webhooks/. Run /dev-workflow to finish up.",
+      "expected_output": "Should detect Phase 4 (VERIFY). Dispatch a subagent that runs lint, type checks, full test suite. Should clean up workflow artifacts (delete docs/workflow/add-webhooks/). Should create a PR or prepare a commit. Should ask about milestone assignment.",
+      "files": [],
+      "assertions": [
+        { "name": "detects-phase-4", "description": "Correctly detects the workflow is in Phase 4 (VERIFY)" },
+        { "name": "dispatches-subagent", "description": "Dispatches Phase 4 to a subagent via the Agent tool" },
+        { "name": "runs-full-verification", "description": "The subagent runs lint, type checks, and the full test suite" },
+        { "name": "cleans-up-artifacts", "description": "Removes docs/workflow/add-webhooks/ (SPEC.md and PLAN.md are working documents, not permanent)" },
+        { "name": "prepares-pr-or-commit", "description": "Creates a PR or prepares the final commit with proper conventional commit format" },
+        { "name": "asks-about-milestone", "description": "Asks about milestone assignment (project uses milestones per CLAUDE.md)" }
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "Quiero usar el workflow para renombrar el comando 'init' a 'setup' en todo el CLI. Es un rename simple — actualizar el comando, los tests, el help text, y el README.",
+      "expected_output": "Borderline simple/standard. Could go either way. The orchestrator should make a judgment call and explain why. If simple: skip to Phase 2. If standard: start Phase 1. Either way, the reasoning should be transparent.",
+      "files": [],
+      "assertions": [
+        { "name": "makes-complexity-judgment", "description": "Makes an explicit complexity classification with reasoning" },
+        { "name": "explains-reasoning", "description": "Explains why it classified the task as simple or standard — the reasoning is transparent" },
+        { "name": "dispatches-subagent", "description": "Dispatches the appropriate phase to a subagent" },
+        { "name": "branch-created-regardless", "description": "Regardless of complexity, a feature branch is created (in Phase 2)" },
+        { "name": "consistent-naming", "description": "Branch name and workflow directory use the same feature-name" }
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "I have SPEC.md in docs/workflow/add-caching/ approved. Run /dev-workflow to continue to Phase 2. I want the plan to have no more than 3 tasks — keep it tight.",
+      "expected_output": "Should detect Phase 2 (SPEC exists, no PLAN). Dispatch Phase 2 subagent. The user's constraint about max 3 tasks should be passed to the subagent as additional context.",
+      "files": [],
+      "assertions": [
+        { "name": "detects-phase-2", "description": "Correctly detects Phase 2 — SPEC.md exists, no PLAN.md" },
+        { "name": "dispatches-subagent", "description": "Dispatches Phase 2 to a subagent via the Agent tool" },
+        { "name": "passes-user-constraint", "description": "Passes the user's constraint (max 3 tasks) to the subagent in the dispatch prompt" },
+        { "name": "creates-feature-branch", "description": "The subagent creates a feature/<name> branch" },
+        { "name": "produces-plan-md", "description": "Produces a PLAN.md that respects the task count constraint" },
+        { "name": "presents-review-gate", "description": "Presents the review gate for user approval before proceeding" }
+      ]
+    },
+    {
+      "id": 19,
+      "prompt": "dev-workflow. The PLAN.md in docs/workflow/fix-logging/ has 2 tasks. Task 1 test files exist but have import errors — they don't compile. I'm on branch feature/fix-logging. Continue.",
+      "expected_output": "Should detect Phase 3. Should identify that task 1 has test files with errors — this means task 1 is NOT complete (broken tests = still in Phase 3). Should dispatch a subagent for task 1 to fix the tests and complete the implementation.",
+      "files": [],
+      "assertions": [
+        { "name": "detects-phase-3", "description": "Correctly detects Phase 3 (IMPLEMENT)" },
+        { "name": "identifies-broken-tests", "description": "Identifies that task 1's test files have errors — task 1 is incomplete" },
+        { "name": "does-not-skip-broken-task", "description": "Does NOT skip task 1 or mark it as complete — broken tests mean it's still in progress" },
+        { "name": "dispatches-subagent-for-task-1", "description": "Dispatches a subagent for task 1 to fix the tests and complete implementation" },
+        { "name": "subagent-gets-error-context", "description": "The subagent receives context about the existing broken test files so it can fix them rather than start from scratch" }
+      ]
+    },
+    {
+      "id": 20,
+      "prompt": "Use the dev-workflow to add internationalization (i18n) support to the CLI. All user-facing strings should be extractable. Support English and Spanish initially. This is a foundational change that touches almost every file.",
+      "expected_output": "Should classify as standard — this is a large, cross-cutting feature. Phase 1 should produce a thorough spec covering the i18n framework choice, string extraction strategy, fallback behavior, and which files are affected. The subagent should ask clarifying questions about framework preference.",
+      "files": [],
+      "assertions": [
+        { "name": "classifies-as-standard", "description": "Identifies as Standard complexity — large cross-cutting feature" },
+        { "name": "starts-at-phase-1", "description": "Begins at Phase 1 (SPEC) — too complex to skip" },
+        { "name": "dispatches-subagent", "description": "Dispatches Phase 1 to a subagent via the Agent tool" },
+        { "name": "subagent-explores-string-usage", "description": "The subagent explores existing user-facing strings in the codebase" },
+        { "name": "surfaces-clarifying-questions", "description": "Surfaces clarifying questions about i18n framework, string format, locale detection strategy" },
+        { "name": "presents-summary-for-review", "description": "Presents the review gate summary for user approval" }
+      ]
     }
   ]
 }
