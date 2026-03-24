@@ -11,8 +11,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const args = process.argv.slice(2);
 const command = args[0];
-const flags = new Set(args.slice(1));
-const isLocal = flags.has("--local");
+const restArgs = args.slice(1);
+const isLocal = restArgs.includes("--local");
+const fromIndex = restArgs.indexOf("--from");
+const fromPath = fromIndex !== -1 ? restArgs[fromIndex + 1] : undefined;
 
 if (command === "--version" || command === "-v") {
   const pkg = JSON.parse(
@@ -28,9 +30,10 @@ Commands:
   status    Show where the skill is installed
 
 Options:
-  --local    Install/update in the current project instead of globally
-  --version  Show version number
-  --help     Show this help message`);
+  --local          Install/update in the current project instead of globally
+  --from <path>    Update from a local path instead of the npm registry
+  --version        Show version number
+  --help           Show this help message`);
 } else if (command === "init") {
   await handleInit();
 } else if (command === "update") {
@@ -54,15 +57,23 @@ async function handleInit() {
     if (chosen === "both") {
       await init(cwd, { scope: "local", confirm: true });
       await init(cwd, { scope: "global", confirm: true });
+      console.log("Skill installed (local + global).");
     } else {
       await init(cwd, { scope: chosen, confirm: true });
+      console.log(`Skill installed (${chosen}).`);
     }
   } else {
     await init(cwd, { scope });
+    console.log(`Skill installed (${scope}).`);
     if (scope === "local" && installations.global) {
       console.log(formatWarning());
     }
   }
+}
+
+function formatUpdateMessage(scope, version) {
+  if (version) return `Skill updated to v${version} (${scope}).`;
+  return `Skill updated (${scope}).`;
 }
 
 async function handleUpdate() {
@@ -78,15 +89,19 @@ async function handleUpdate() {
     console.log(formatWarning());
     const chosen = await askInstallScope();
     if (chosen === "both") {
-      await update(cwd, { scope: "local" });
-      await update(cwd, { scope: "global" });
+      const { version } = await update(cwd, { scope: "local", from: fromPath });
+      await update(cwd, { scope: "global", from: fromPath });
+      console.log(formatUpdateMessage("local + global", version));
     } else {
-      await update(cwd, { scope: chosen });
+      const { version } = await update(cwd, { scope: chosen, from: fromPath });
+      console.log(formatUpdateMessage(chosen, version));
     }
   } else if (installations.local) {
-    await update(cwd, { scope: "local" });
+    const { version } = await update(cwd, { scope: "local", from: fromPath });
+    console.log(formatUpdateMessage("local", version));
   } else {
-    await update(cwd, { scope: "global" });
+    const { version } = await update(cwd, { scope: "global", from: fromPath });
+    console.log(formatUpdateMessage("global", version));
   }
 }
 

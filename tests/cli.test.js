@@ -99,11 +99,13 @@ describe("CLI: update", () => {
     const skillMdPath = path.join(fakeHome, SKILL_DIR, "SKILL.md");
     await fs.writeFile(skillMdPath, "OLD_CONTENT");
 
-    await runCli(["update"], { cwd: tmpDir });
+    const { stdout } = await runCli(["update", "--from", PROJECT_ROOT], { cwd: tmpDir });
 
     const content = await fs.readFile(skillMdPath, "utf-8");
     expect(content).not.toBe("OLD_CONTENT");
     expect(content.length).toBeGreaterThan(0);
+    expect(stdout).toContain("updated");
+    expect(stdout).toContain("global");
   });
 
   it("updates local when only local exists", async () => {
@@ -113,16 +115,57 @@ describe("CLI: update", () => {
     const skillMdPath = path.join(tmpDir, SKILL_DIR, "SKILL.md");
     await fs.writeFile(skillMdPath, "OLD_CONTENT");
 
-    await runCli(["update"], { cwd: tmpDir });
+    const { stdout } = await runCli(["update", "--from", PROJECT_ROOT], { cwd: tmpDir });
 
     const content = await fs.readFile(skillMdPath, "utf-8");
     expect(content).not.toBe("OLD_CONTENT");
     expect(content.length).toBeGreaterThan(0);
+    expect(stdout).toContain("updated");
+    expect(stdout).toContain("local");
   });
 
   it("shows error when no installation exists", async () => {
     const tmpDir = await makeTmpDir();
-    await expect(runCli(["update"], { cwd: tmpDir })).rejects.toThrow();
+    await expect(runCli(["update", "--from", PROJECT_ROOT], { cwd: tmpDir })).rejects.toThrow();
+  });
+
+  it("--from copies templates from the specified path, not the bundled package", async () => {
+    const tmpDir = await makeTmpDir();
+    await runCli(["init"], { cwd: tmpDir });
+
+    // Build a custom templates source with a unique marker
+    const fromDir = await makeTmpDir();
+    const templatesDir = path.join(fromDir, "templates");
+    await fs.mkdir(path.join(templatesDir, "references"), { recursive: true });
+    await fs.writeFile(path.join(templatesDir, "SKILL.md"), "CUSTOM_FROM_PATH");
+    for (const f of [
+      "phase-1-spec.md",
+      "phase-2-plan.md",
+      "phase-3-implement.md",
+      "phase-4-verify.md",
+    ]) {
+      await fs.writeFile(path.join(templatesDir, "references", f), `# ${f}`);
+    }
+
+    const { stdout } = await runCli(["update", "--from", fromDir], { cwd: tmpDir });
+
+    const content = await fs.readFile(
+      path.join(fakeHome, SKILL_DIR, "SKILL.md"),
+      "utf-8"
+    );
+    expect(content).toBe("CUSTOM_FROM_PATH");
+    expect(stdout).toContain("updated");
+    expect(stdout).toContain("global");
+  });
+
+  it("--from exits with non-zero when the path has no templates directory", async () => {
+    const tmpDir = await makeTmpDir();
+    await runCli(["init"], { cwd: tmpDir });
+
+    const emptyDir = await makeTmpDir();
+    await expect(
+      runCli(["update", "--from", emptyDir], { cwd: tmpDir })
+    ).rejects.toThrow();
   });
 });
 

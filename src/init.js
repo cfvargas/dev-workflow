@@ -1,6 +1,7 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import { copyTemplates, resolveGlobalDir } from "./utils.js";
+import { fetchLatestTemplates } from "./registry.js";
 
 const SKILL_DIR = ".claude/skills/dev-workflow";
 
@@ -44,11 +45,16 @@ export async function update(projectDir, options = {}) {
         "No installation found. Run `dev-workflow init` first."
       );
     }
-    await copyTemplates(targetDir);
-    return;
+    if (options.from) {
+      await copyTemplates(targetDir, path.join(options.from, "templates"));
+      return {};
+    }
+    const version = await fetchLatestTemplates(targetDir);
+    return { version };
   }
 
   // Legacy behavior: update local
   const targetDir = path.join(projectDir, SKILL_DIR);
   await copyTemplates(targetDir);
+  return {};
 }
