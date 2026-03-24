@@ -102,6 +102,14 @@ The Agent tool may not be available in all environments (e.g., sandboxed worktre
 4. **Review gates still apply** — After completing phase work inline, present results to the user in the same format as if a subagent had returned them. Do not skip the review gate just because execution was inline.
 5. **Log the fallback** — Note in your output that the Agent tool was unavailable and execution was performed inline.
 
+**Inline execution does NOT mean collapsing phases.** The most common mistake is treating inline mode as permission to execute the entire workflow in a single pass. This defeats the purpose of the review gates — the user loses control over each phase's output.
+
+Inline execution rules:
+- **One phase at a time.** Execute only the current phase. Do not look ahead or begin the next phase until the user approves the review gate.
+- **Stop at the review gate.** After finishing executor work for a phase, present the review gate and wait for the user's response. Do not simulate approval or assume the user is satisfied.
+- **Never self-answer clarifying questions.** If Phase 1 identifies ambiguity, return the questions to the user through the review gate. Do not fill in "reasonable defaults" yourself — surfacing design decisions is the point of Phase 1, not minimizing round trips.
+- **Create artifacts on disk.** Inline execution must still produce the same files a subagent would (SPEC.md, PLAN.md, workflow directory). If file writes are restricted, report what you would have created and present the content in the review gate.
+
 ### Dispatch Template
 
 For each phase, call the Agent tool with a prompt following this structure:
@@ -220,7 +228,9 @@ Phase 3 is special: the orchestrator dispatches **one subagent per task**, not o
 
 ## Review Gate Protocol
 
-After every phase completes (whether via subagent or inline), present results to the user using this format:
+The review gate is the user's control point — it is mandatory after every phase, whether dispatched via subagent or executed inline. Present results directly to the user and wait for their response. Never simulate user approval, skip the gate, or proceed to the next phase without explicit user confirmation.
+
+After every phase completes, present results to the user using this format:
 
 ```
 Phase {N} ({PHASE_NAME}) Complete — {FEATURE_NAME}
@@ -301,6 +311,8 @@ Not every project has testing infrastructure. If the project has no test command
 - **Read CLAUDE.md first.** Every project has different commands, conventions, and skills.
 - **One phase per session.** Keep context clean. The user can continue in the same session if they want, but the default is one phase per session.
 - **Orchestrator delegates when possible.** When the Agent tool is available, all file creation, code writing, and test execution happen inside subagents. The orchestrator only performs git commits (Phase 3) and manages user interaction. When the Agent tool is unavailable, the orchestrator executes phase work inline following the phase reference files (see Inline Execution Fallback).
+- **One phase per response in inline mode.** Even when executing inline, complete one phase, present the review gate, and stop. Do not bundle multiple phases into a single response — the user needs to approve each phase before the next one starts.
+- **Never self-answer clarifying questions.** When Phase 1 identifies ambiguity, the orchestrator must surface the questions to the user. Guessing answers — even with codebase evidence — defeats the purpose of the spec phase. The cost of one extra exchange is far lower than the cost of a spec built on assumptions.
 - **Subagents never interact with the user.** All user-facing communication goes through the orchestrator. Subagents return structured summaries; the orchestrator presents results and collects feedback.
 - **One subagent per unit of work.** Phases 1, 2, and 4 each get one subagent. Phase 3 gets one subagent per task. Never dispatch a single subagent for the entire Phase 3.
 - **New subagent for changes, never re-enter.** If the user requests changes after reviewing subagent output, dispatch a fresh subagent with the feedback. Do not attempt to continue a previous subagent's context.
