@@ -58,6 +58,11 @@ fi
 
 If the branch exists from a previous attempt, note this in your return summary so the orchestrator can inform the user.
 
+**Worktree environments:** If you are operating inside a git worktree (e.g., `.claude/worktrees/`), branch switching is restricted — the worktree is already on its own isolated branch. In this case:
+- Skip `git checkout -b` — the worktree branch provides the isolation that a feature branch would.
+- Note the worktree branch name in your return summary as the working branch.
+- The feature branch can be created from the worktree's changes later if needed.
+
 ### 4. Research the Codebase
 
 Make the architectural decisions:

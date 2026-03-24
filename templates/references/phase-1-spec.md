@@ -45,7 +45,15 @@ Identify things you cannot resolve by reading the code. Focus on the "silent dec
 - Scope — which specific system/component is involved?
 - Existing behavior — does this replace or extend something?
 
-If you find questions that cannot be answered from the codebase, do NOT guess. Instead, return the questions in your summary so the orchestrator can collect answers from the user. Group questions together.
+If you find questions where the codebase suggests an answer but a reasonable developer might choose differently, these ARE clarifying questions — return them. The threshold is: "Would two experienced developers reading this codebase make the same decision?" If not, ask.
+
+Do NOT make assumptions and proceed. Do NOT write SPEC.md with assumed answers. Return status "questions" with the list of questions. The orchestrator will collect answers from the user and dispatch you again.
+
+Common question categories that almost always warrant asking:
+- Scope boundaries (does this apply to X as well as Y?)
+- User-facing behavior changes (should existing behavior change or only new paths?)
+- Confirmation/safety mechanisms (interactive prompt, --force flag, both?)
+- Edge case handling policy (error, warn, silent skip?)
 
 ### 3. Define Feature Name and Create Directory
 
