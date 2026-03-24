@@ -1,9 +1,13 @@
 ---
 name: dev-workflow
 description: >
-  Use when the user explicitly asks to run the Spec Driven Development workflow (SDD) / structured dev-workflow,
-  e.g. they say "dev-workflow", "SDD", "workflow", or use /dev-workflow. Do NOT use for
-  generic feature requests like "build X" unless they explicitly requested the workflow.
+  Use this structured development workflow (SDD / dev-workflow) when the user wants to build, create, add,
+  implement, fix, or refactor something — any task that involves writing or changing code. Activates for
+  development requests like "build a REST API", "add dark mode", "fix the login bug", "implement caching",
+  "create a new component", or "refactor the auth module". Also activates when the user explicitly says
+  "dev-workflow", "SDD", "workflow", or uses /dev-workflow. Do NOT activate for read-only requests such as
+  explain, summarize, or review — e.g. "explain this code", "what does this function do?", or "summarize
+  this PR". This is a structured spec-driven workflow, not a generic code helper.
 license: MIT
 compatibility: Any project with git and CLAUDE.md
 metadata:
