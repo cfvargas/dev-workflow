@@ -20,7 +20,7 @@ You are orchestrating a structured development cycle based on Spec Driven Develo
 
 ## Project Detection
 
-Before starting, read the project's `CLAUDE.md` (or `AGENTS.md`) to extract these settings and pass them to every subagent: base branch, test command, lint command, type check, test runner (watch), commit format, versioning, milestones, releases, project skills. If a setting is not specified, use sensible defaults (e.g., `main` for base branch, `npm test` for test command, conventional for commit format, `none` for versioning/milestones/releases, skip if N/A for type check).
+Before starting, read the project's `CLAUDE.md` (or `AGENTS.md`) to extract these settings and pass them to every subagent: base branch, test command, lint command, type check, test runner (watch), commit format, versioning, milestones, releases, project skills. If a setting is not specified, use sensible defaults (e.g., `main` for base branch, `npm test` for test command, `npm run lint` for lint command, `vitest` for test runner, conventional for commit format, `none` for versioning/milestones/releases, skip if N/A for type check).
 
 ## Complexity Triage
 
@@ -211,9 +211,13 @@ If the user wants to abandon a workflow, handle it directly in the orchestrator 
 
 - **Artifacts are the source of truth.** Every decision lives in SPEC.md or PLAN.md, not in conversation context. These files are working documents — they get deleted in Phase 4 before creating the PR.
 - **Branch before code.** Every task — simple or standard — must have a `feature/<name>` branch created before any code is written. Never commit directly to the base branch. *Exception:* In worktree environments, the worktree's own branch provides equivalent isolation.
+- **Tests before code.** When the project has a test runner, always write failing tests before implementation. Without test infrastructure, verify behavior manually against acceptance criteria.
 - **Commit per task.** Each completed task gets its own commit immediately after user approval — before starting the next task.
 - **User reviews each task.** In Phase 3, the user reviews after each task's cycle — not just at the end of the phase.
+- **Read CLAUDE.md first.** Every project has different commands, conventions, and skills.
+- **One phase per session.** Keep context clean. The user can continue in the same session, but the default is one phase per session.
 - **Orchestrator delegates when possible.** When the Agent tool is available, all file creation, code writing, and test execution happen inside subagents. The orchestrator only performs git commits (Phase 3) and manages user interaction. When unavailable, execute inline per `references/inline-execution.md`.
+- **One subagent per unit of work.** Phases 1, 2, and 4 each get one subagent. Phase 3 gets one subagent per task.
 - **One phase per response in inline mode.** Even when executing inline, complete one phase, present the review gate, and stop.
 - **Never self-answer clarifying questions.** Surface ambiguity to the user. The cost of one extra exchange is far lower than the cost of a spec built on assumptions.
 - **Subagents never interact with the user.** All user-facing communication goes through the orchestrator.
