@@ -11,6 +11,9 @@ const EXPECTED_FILES = [
   "references/phase-2-plan.md",
   "references/phase-3-implement.md",
   "references/phase-4-verify.md",
+  "references/inline-execution.md",
+  "references/error-handling.md",
+  "references/abort-protocol.md",
 ];
 
 let tmpDir;

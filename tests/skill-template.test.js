@@ -141,47 +141,46 @@ describe("templates/SKILL.md", () => {
     });
   });
 
-  describe("body content — unchanged", () => {
-    // Snapshot of the current body content (everything after the closing ---)
-    // This ensures R6: body content is unchanged when the description is updated.
-    const EXPECTED_BODY_SNAPSHOT = `
-# Spec Driven Development Workflow
-
-You are orchestrating a structured development cycle based on Spec Driven Development (SDD). The core idea: define WHAT you want before writing code, then implement from structured specifications. Each phase produces a persistent artifact that the next session consumes — the files travel, not the context.
-
-## Project Detection
-
-Before starting, read the project's \`CLAUDE.md\` (or \`AGENTS.md\`) to determine:
-
-| Setting | Examples | Default |
-|---------|----------|---------|
-| Base branch | \`develop\`, \`main\`, \`master\` | \`main\` |
-| Test command | \`npm test\`, \`pytest\`, \`cargo test\` | \`npm test\` |
-| Lint command | \`npm run lint\`, \`ruff check\` | \`npm run lint\` |
-| Type check | \`npm run typescript\`, \`mypy .\` | Skip if N/A |
-| Test runner (watch) | \`vitest\`, \`jest --watch\` | \`vitest\` |
-| Commit format | conventional, project-specific | conventional |
-| Versioning | semver, calver, none | none |
-| Milestones | per-version, per-sprint, none | none |
-| Releases | GitHub releases, tags only, none | none |
-| Project skills | \`.claude/skills/\` entries | — |`;
-
-    it("body content matches the current snapshot (no accidental changes)", async () => {
+  describe("body content — compressed form", () => {
+    it("body starts with the expected title", async () => {
       if (!parsed) {
         content = await fs.readFile(SKILL_MD_PATH, "utf-8");
         parsed = parseFrontmatter(content);
       }
 
-      // Compare the beginning of the body to ensure it hasn't changed.
-      // We check a meaningful prefix rather than the entire body to keep the test maintainable,
-      // but it's enough to catch accidental edits.
       const bodyTrimmed = parsed.body.trim();
-      const snapshotTrimmed = EXPECTED_BODY_SNAPSHOT.trim();
-
       expect(
-        bodyTrimmed.startsWith(snapshotTrimmed),
-        "Body content has changed — only the description field should be modified, not the body",
+        bodyTrimmed.startsWith("# Spec Driven Development Workflow"),
+        "Body should start with '# Spec Driven Development Workflow'",
       ).toBe(true);
+    });
+
+    it("does NOT contain the verbose Project Detection table", async () => {
+      if (!parsed) {
+        content = await fs.readFile(SKILL_MD_PATH, "utf-8");
+        parsed = parseFrontmatter(content);
+      }
+
+      // The old verbose table had this header row; the compressed form should not.
+      expect(parsed.body).not.toContain("| Setting | Examples | Default |");
+    });
+  });
+
+  describe("line count — slim orchestrator target (R14)", () => {
+    it("SKILL.md is between 190 and 230 lines", async () => {
+      if (!content) {
+        content = await fs.readFile(SKILL_MD_PATH, "utf-8");
+      }
+
+      const lineCount = content.split("\n").length;
+      expect(
+        lineCount,
+        `Expected SKILL.md to be between 190 and 230 lines, but got ${lineCount}`,
+      ).toBeGreaterThanOrEqual(190);
+      expect(
+        lineCount,
+        `Expected SKILL.md to be between 190 and 230 lines, but got ${lineCount}`,
+      ).toBeLessThanOrEqual(230);
     });
   });
 });
