@@ -137,3 +137,11 @@ When you are done, return a structured summary to the orchestrator in this forma
 - **Regressions detected:** yes/no — if yes, describe what broke and how it was fixed
 - **Refactor notes:** what was cleaned up (if anything)
 - **Issues or concerns:** anything the orchestrator should know (e.g., unexpected complexity, assumptions made, potential impact on future tasks)
+
+## Projects Without a Test Suite
+
+Not every project has testing infrastructure. If the project has no test command in CLAUDE.md (or no test runner configured):
+
+- **Phase 3 adapts:** Instead of the RED -> GREEN -> REFACTOR loop, use an IMPLEMENT -> VERIFY -> REFACTOR loop. "Verify" means manually confirming the behavior works (running the app, checking output, etc.) and documenting what was verified.
+- **Encourage adding tests:** Suggest setting up a minimal test framework as the first task in the plan. This is a recommendation, not a hard requirement -- the user decides.
+- **Acceptance criteria still apply:** Even without automated tests, each task's acceptance criteria from the spec must be verified before moving on.
