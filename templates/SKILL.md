@@ -20,42 +20,24 @@ You are orchestrating a structured development cycle based on Spec Driven Develo
 
 ## Project Detection
 
-Before starting, read the project's `CLAUDE.md` (or `AGENTS.md`) to determine:
-
-| Setting | Examples | Default |
-|---------|----------|---------|
-| Base branch | `develop`, `main`, `master` | `main` |
-| Test command | `npm test`, `pytest`, `cargo test` | `npm test` |
-| Lint command | `npm run lint`, `ruff check` | `npm run lint` |
-| Type check | `npm run typescript`, `mypy .` | Skip if N/A |
-| Test runner (watch) | `vitest`, `jest --watch` | `vitest` |
-| Commit format | conventional, project-specific | conventional |
-| Versioning | semver, calver, none | none |
-| Milestones | per-version, per-sprint, none | none |
-| Releases | GitHub releases, tags only, none | none |
-| Project skills | `.claude/skills/` entries | — |
+Before starting, read the project's `CLAUDE.md` (or `AGENTS.md`) to extract these settings and pass them to every subagent: base branch, test command, lint command, type check, test runner (watch), commit format, versioning, milestones, releases, project skills. If a setting is not specified, use sensible defaults (e.g., `main` for base branch, `npm test` for test command, `npm run lint` for lint command, `vitest` for test runner, conventional for commit format, `none` for versioning/milestones/releases, skip if N/A for type check).
 
 ## Complexity Triage
 
 Not every task needs the full 4-phase ceremony. Classify the task before starting:
 
 **Simple** — bugfix, config change, small tweak, single-file change:
-→ Skip Phase 1. Flow: `PLAN → IMPLEMENT → VERIFY`
-→ Phase 2 (PLAN) still creates the feature branch — no code touches the base branch directly.
+> Skip Phase 1. Flow: `PLAN → IMPLEMENT → VERIFY`
+> Phase 2 (PLAN) still creates the feature branch — no code touches the base branch directly.
 
 **Standard** — new feature, multi-file change, domain logic, anything where "obvious" business rules aren't obvious:
-→ Full flow: `SPEC → PLAN → IMPLEMENT → VERIFY`
+> Full flow: `SPEC → PLAN → IMPLEMENT → VERIFY`
 
 When in doubt, go Standard. The cost of a spec you didn't need is low. The cost of ambiguity in implementation is high.
 
 ## Naming Convention
 
-Phase 1 defines a `<feature-name>` (e.g., `add-ssl-filters`, `fix-pagination`). This name is used consistently:
-
-- **Directory:** `docs/workflow/<feature-name>/`
-- **Branch:** `feature/<feature-name>`
-
-Phase 1 creates the directory. Phase 2 creates the git branch matching it.
+Phase 1 defines a `<feature-name>` used for the directory (`docs/workflow/<feature-name>/`) and branch (`feature/<feature-name>`). See `references/phase-1-spec.md` and `references/phase-2-plan.md` for details.
 
 ## Workflow Overview
 
@@ -94,21 +76,7 @@ Each phase runs in a **subagent** via the Agent tool. The orchestrator (you) nev
 
 ### Inline Execution Fallback
 
-The Agent tool may not be available in all environments (e.g., sandboxed worktrees, restricted tool sets). When the Agent tool is unavailable:
-
-1. **Detect early** — Before dispatching the first phase, check if the Agent tool is available. If not, switch to inline execution mode for the entire workflow.
-2. **Follow the same phase references** — Read and follow the phase reference file (`references/phase-N-*.md`) exactly as a subagent would. The phase instructions, exit criteria, and return summary format still apply.
-3. **Maintain the orchestrator/executor boundary mentally** — Even when executing inline, separate the "orchestrator" concerns (phase detection, review gates, commits, user interaction) from the "executor" concerns (codebase exploration, file creation, test execution). Complete all executor work first, then switch to orchestrator mode to present results.
-4. **Review gates still apply** — After completing phase work inline, present results to the user in the same format as if a subagent had returned them. Do not skip the review gate just because execution was inline.
-5. **Log the fallback** — Note in your output that the Agent tool was unavailable and execution was performed inline.
-
-**Inline execution does NOT mean collapsing phases.** The most common mistake is treating inline mode as permission to execute the entire workflow in a single pass. This defeats the purpose of the review gates — the user loses control over each phase's output.
-
-Inline execution rules:
-- **One phase at a time.** Execute only the current phase. Do not look ahead or begin the next phase until the user approves the review gate.
-- **Stop at the review gate.** After finishing executor work for a phase, present the review gate and wait for the user's response. Do not simulate approval or assume the user is satisfied.
-- **Never self-answer clarifying questions.** If Phase 1 identifies ambiguity, return the questions to the user through the review gate. Do not fill in "reasonable defaults" yourself — surfacing design decisions is the point of Phase 1, not minimizing round trips.
-- **Create artifacts on disk.** Inline execution must still produce the same files a subagent would (SPEC.md, PLAN.md, workflow directory). If file writes are restricted, report what you would have created and present the content in the review gate.
+When the Agent tool is unavailable, execute phase work inline instead of dispatching subagents. Read `references/inline-execution.md` for the full protocol. Key rule: still execute one phase at a time and stop at each review gate.
 
 ### Dispatch Template
 
@@ -143,7 +111,7 @@ You are a subagent executing Phase N ({PHASE_NAME}) for the `{FEATURE_NAME}` fea
 
 ## Return Summary
 
-Return a structured summary using the exact format (field names and ordering) required by the referenced phase reference file's **“Return Summary”** section (`{PHASE_REFERENCE_PATH}`).
+Return a structured summary using the exact format (field names and ordering) required by the referenced phase reference file's **"Return Summary"** section (`{PHASE_REFERENCE_PATH}`).
 
 If the phase reference requires additional fields beyond the common ones, include them; if it omits a field, do not invent it.
 ```
@@ -159,18 +127,7 @@ If the phase reference requires additional fields beyond the common ones, includ
 
 ### Context Variables
 
-Collect these from Project Detection and pass them to every subagent:
-
-| Variable | Source | Example |
-|----------|--------|---------|
-| `FEATURE_NAME` | Naming Convention / user request | `add-ssl-filters` |
-| `PROJECT_ROOT` | Current working directory | `/home/user/myproject` |
-| `TEST_COMMAND` | CLAUDE.md | `npm test` |
-| `SPEC_PATH` | Naming Convention | `docs/workflow/add-ssl-filters/SPEC.md` |
-| `PLAN_PATH` | Naming Convention | `docs/workflow/add-ssl-filters/PLAN.md` |
-| `PHASE_REFERENCE_PATH` | Phase Reference Table | `references/phase-3-implement.md` |
-| `BASE_BRANCH` | CLAUDE.md | `main` |
-| `COMMIT_FORMAT` | CLAUDE.md | `conventional` |
+Collect these from Project Detection and pass them to every subagent: `FEATURE_NAME`, `PROJECT_ROOT`, `TEST_COMMAND`, `SPEC_PATH`, `PLAN_PATH`, `PHASE_REFERENCE_PATH`, `BASE_BRANCH`, `COMMIT_FORMAT`.
 
 ## Phase 3 Task Loop
 
@@ -228,109 +185,41 @@ Phase 3 is special: the orchestrator dispatches **one subagent per task**, not o
 
 ## Review Gate Protocol
 
-The review gate is the user's control point — it is mandatory after every phase, whether dispatched via subagent or executed inline. Present results directly to the user and wait for their response. Never simulate user approval, skip the gate, or proceed to the next phase without explicit user confirmation.
+The review gate is mandatory after every phase. Present results to the user and wait for explicit approval before proceeding.
 
-After every phase completes, present results to the user using this format:
+**After each phase:** Present a summary (status, files created/modified, key decisions, next phase) and ask whether to proceed or if the user has feedback.
 
-```
-Phase {N} ({PHASE_NAME}) Complete — {FEATURE_NAME}
+**Phase 3 tasks** use the task-specific format defined in the Phase 3 Task Loop section above.
 
-  Complexity: {simple|standard}
-  Status: {pass|questions|fail}
+**User approves:** For Phases 1, 2, 4 — proceed to the next phase. For Phase 3 — commit the task, then dispatch the next task.
 
-  Summary:
-    {2-4 bullet points of what was produced}
+**User requests changes:** Dispatch a **new** subagent with the same phase context plus the user's feedback and a note that files on disk already contain the previous subagent's work. Repeat until approved.
 
-  Files created/modified:
-    {list}
+**Phase 1 returns questions:** Present the questions to the user, collect answers, and dispatch a new Phase 1 subagent with the original request plus answers. Subagents should return questions even when they could guess — surfacing design decisions is the point.
 
-  {Key decisions or concerns, if any}
-
-  Next: Phase {N+1} ({NEXT_PHASE_NAME})
-
-Shall I proceed to Phase {N+1}, or do you have feedback?
-```
-
-For Phase 3 tasks, use the task-specific format defined in the Phase 3 Task Loop section above.
-
-### User Approves
-
-- **Phases 1, 2, 4:** Proceed to the next phase (or end the workflow).
-- **Phase 3:** Commit the task (orchestrator does the commit), then dispatch the next task's subagent.
-
-### User Requests Changes
-
-1. Collect the user's feedback.
-2. Dispatch a **new** subagent with:
-   - The same phase reference and context as before
-   - The user's feedback as an additional instruction
-   - A note that files on disk already contain the previous subagent's work — the new subagent should modify in place, not start from scratch
-3. When the new subagent returns, present updated results to the user.
-4. Repeat until the user approves.
-
-### Subagent Returned Clarifying Questions (Phase 1)
-
-If the Phase 1 subagent (or inline executor) returns questions instead of a completed SPEC.md:
-1. Present the questions to the user.
-2. Collect answers.
-3. Dispatch a new Phase 1 subagent (or re-execute inline) with the original request plus the user's answers.
-
-**Important:** The subagent should return questions even when it *could* guess the answer from the codebase. The goal is to surface design decisions to the user, not to minimize round trips. A spec built on assumptions is worse than a spec that required one extra exchange.
-
-### Subagent Returned an Error
-
-See Error Handling below.
+**Subagent returns an error:** See `references/error-handling.md`.
 
 ## Error Handling
 
-When a subagent fails or returns incomplete results:
+When a subagent fails or returns incomplete results, follow the error-handling protocol in `references/error-handling.md`. This covers reporting to the user, retry/skip/abort options, and context-overflow recovery.
 
-1. **Report to user** — Show what the subagent reported: error message, partial results, files that may have been modified.
-2. **Offer options:**
-   - **Retry** — Dispatch a new subagent with the same inputs. The new subagent will find any partial file writes from the failed attempt on disk and must handle that state.
-   - **Retry with guidance** — User provides additional context or constraints, and a new subagent is dispatched with this guidance.
-   - **Skip** (Phase 3 tasks only) — Mark the task as skipped and move to the next one. The user can come back to it later.
-   - **Abort** — Use the Abort Protocol.
-3. **Context overflow** — If a subagent signals it is running low on context (returns partial results with a note), the orchestrator dispatches a continuation subagent with the partial state and instructions to pick up where the previous one left off.
+## Abort Protocol
 
-## Projects Without a Test Suite
-
-Not every project has testing infrastructure. If the project has no test command in CLAUDE.md (or no test runner configured):
-
-- **Phase 3 adapts:** Instead of the RED → GREEN → REFACTOR loop, use an IMPLEMENT → VERIFY → REFACTOR loop. "Verify" means manually confirming the behavior works (running the app, checking output, etc.) and documenting what was verified.
-- **Encourage adding tests:** Suggest setting up a minimal test framework as the first task in the plan. This is a recommendation, not a hard requirement — the user decides.
-- **Acceptance criteria still apply:** Even without automated tests, each task's acceptance criteria from the spec must be verified before moving on.
+If the user wants to abandon a workflow, handle it directly in the orchestrator (never delegate to a subagent). See `references/abort-protocol.md` for the full protocol including confirmation, pause/abort options, and cleanup.
 
 ## Rules
 
 - **Artifacts are the source of truth.** Every decision lives in SPEC.md or PLAN.md, not in conversation context. These files are working documents — they get deleted in Phase 4 before creating the PR.
-- **Branch before code.** Every task — simple or standard — must have a `feature/<name>` branch created before any code is written. Never commit directly to the base branch. *Exception:* In worktree environments where branch switching is restricted, the worktree's own branch provides equivalent isolation — note this in the review gate.
-- **Tests before code.** When the project has a test runner, always write failing tests before implementation. If there's no test infrastructure, verify behavior manually against acceptance criteria.
-- **Commit per task.** Each completed task gets its own commit immediately after user approval — before starting the next task. This keeps the git history granular and reviewable.
+- **Branch before code.** Every task — simple or standard — must have a `feature/<name>` branch created before any code is written. Never commit directly to the base branch. *Exception:* In worktree environments, the worktree's own branch provides equivalent isolation.
+- **Tests before code.** When the project has a test runner, always write failing tests before implementation. Without test infrastructure, verify behavior manually against acceptance criteria.
+- **Commit per task.** Each completed task gets its own commit immediately after user approval — before starting the next task.
 - **User reviews each task.** In Phase 3, the user reviews after each task's cycle — not just at the end of the phase.
 - **Read CLAUDE.md first.** Every project has different commands, conventions, and skills.
-- **One phase per session.** Keep context clean. The user can continue in the same session if they want, but the default is one phase per session.
-- **Orchestrator delegates when possible.** When the Agent tool is available, all file creation, code writing, and test execution happen inside subagents. The orchestrator only performs git commits (Phase 3) and manages user interaction. When the Agent tool is unavailable, the orchestrator executes phase work inline following the phase reference files (see Inline Execution Fallback).
-- **One phase per response in inline mode.** Even when executing inline, complete one phase, present the review gate, and stop. Do not bundle multiple phases into a single response — the user needs to approve each phase before the next one starts.
-- **Never self-answer clarifying questions.** When Phase 1 identifies ambiguity, the orchestrator must surface the questions to the user. Guessing answers — even with codebase evidence — defeats the purpose of the spec phase. The cost of one extra exchange is far lower than the cost of a spec built on assumptions.
-- **Subagents never interact with the user.** All user-facing communication goes through the orchestrator. Subagents return structured summaries; the orchestrator presents results and collects feedback.
-- **One subagent per unit of work.** Phases 1, 2, and 4 each get one subagent. Phase 3 gets one subagent per task. Never dispatch a single subagent for the entire Phase 3.
-- **New subagent for changes, never re-enter.** If the user requests changes after reviewing subagent output, dispatch a fresh subagent with the feedback. Do not attempt to continue a previous subagent's context.
-- **Abort stays in the orchestrator.** The abort protocol is never delegated to a subagent. If the user says "abort" at any point, handle it directly.
-
-## Abort Protocol
-
-If the user wants to abandon a workflow at any point:
-
-1. **Ask for confirmation** — "Are you sure you want to abort? I can also just pause if you want to come back later."
-2. **Offer options:**
-   - **Pause** (default) — Stop here. Artifacts and branch persist. Phase Detection picks up later.
-   - **Abort, keep branch** — Remove workflow artifacts (`rm -rf docs/workflow/<feature-name>`) but keep the branch (useful if there's salvageable code).
-   - **Full abort** — Remove everything:
-     ```bash
-     git checkout <base-branch>
-     git branch -D feature/<feature-name>
-     rm -rf docs/workflow/<feature-name>
-     ```
-3. **Confirm cleanup** — list exactly what was removed so the user knows the state is clean.
-4. If `docs/workflow/` is now empty, remove it too: `rmdir docs/workflow 2>/dev/null`
+- **One phase per session.** Keep context clean. The user can continue in the same session, but the default is one phase per session.
+- **Orchestrator delegates when possible.** When the Agent tool is available, all file creation, code writing, and test execution happen inside subagents. The orchestrator only performs git commits (Phase 3) and manages user interaction. When unavailable, execute inline per `references/inline-execution.md`.
+- **One subagent per unit of work.** Phases 1, 2, and 4 each get one subagent. Phase 3 gets one subagent per task.
+- **One phase per response in inline mode.** Even when executing inline, complete one phase, present the review gate, and stop.
+- **Never self-answer clarifying questions.** Surface ambiguity to the user. The cost of one extra exchange is far lower than the cost of a spec built on assumptions.
+- **Subagents never interact with the user.** All user-facing communication goes through the orchestrator.
+- **New subagent for changes, never re-enter.** If the user requests changes, dispatch a fresh subagent with the feedback.
+- **Abort stays in the orchestrator.** The abort protocol is never delegated to a subagent.

@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { init, update } from "../src/init.js";
+
+const execFileAsync = promisify(execFile);
 
 const SKILL_DIR = ".claude/skills/dev-workflow";
 const EXPECTED_FILES = [
@@ -11,10 +15,40 @@ const EXPECTED_FILES = [
   "references/phase-2-plan.md",
   "references/phase-3-implement.md",
   "references/phase-4-verify.md",
+  "references/inline-execution.md",
+  "references/error-handling.md",
+  "references/abort-protocol.md",
 ];
 
 let tmpDir;
 let fakeHome;
+let extraTmpDirs = [];
+
+async function makeFakeTarball() {
+  const pkgDir = await fs.mkdtemp(path.join(os.tmpdir(), "init-test-pkg-"));
+  extraTmpDirs.push(pkgDir);
+  const templatesDir = path.join(pkgDir, "package", "templates");
+  await fs.mkdir(path.join(templatesDir, "references"), { recursive: true });
+  await fs.writeFile(path.join(templatesDir, "SKILL.md"), "FROM_REGISTRY");
+  for (const f of [
+    "phase-1-spec.md",
+    "phase-2-plan.md",
+    "phase-3-implement.md",
+    "phase-4-verify.md",
+    "inline-execution.md",
+    "error-handling.md",
+    "abort-protocol.md",
+  ]) {
+    await fs.writeFile(path.join(templatesDir, "references", f), `# ${f}`);
+  }
+  const tarball = path.join(pkgDir, "pkg.tgz");
+  await execFileAsync("tar", ["-czf", tarball, "-C", pkgDir, "package"]);
+  return tarball;
+}
+
+function toArrayBuffer(buf) {
+  return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+}
 
 beforeEach(async () => {
   tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "dev-workflow-test-"));
@@ -25,6 +59,11 @@ beforeEach(async () => {
 afterEach(async () => {
   await fs.rm(tmpDir, { recursive: true, force: true });
   await fs.rm(fakeHome, { recursive: true, force: true });
+  for (const dir of extraTmpDirs) {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+  extraTmpDirs = [];
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -179,6 +218,24 @@ describe("update() with scope", () => {
     const skillMdPath = path.join(fakeHome, SKILL_DIR, "SKILL.md");
     await fs.writeFile(skillMdPath, "ORIGINAL_CONTENT");
 
+    const tarball = await makeFakeTarball();
+    const tarballBuf = await fs.readFile(tarball);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            version: "1.0.0",
+            dist: { tarball: "https://example.com/pkg.tgz" },
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          arrayBuffer: async () => toArrayBuffer(tarballBuf),
+        })
+    );
+
     await update(tmpDir, { scope: "global" });
 
     const content = await fs.readFile(skillMdPath, "utf-8");
@@ -191,6 +248,24 @@ describe("update() with scope", () => {
 
     const skillMdPath = path.join(tmpDir, SKILL_DIR, "SKILL.md");
     await fs.writeFile(skillMdPath, "ORIGINAL_CONTENT");
+
+    const tarball = await makeFakeTarball();
+    const tarballBuf = await fs.readFile(tarball);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            version: "1.0.0",
+            dist: { tarball: "https://example.com/pkg.tgz" },
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          arrayBuffer: async () => toArrayBuffer(tarballBuf),
+        })
+    );
 
     await update(tmpDir, { scope: "local" });
 

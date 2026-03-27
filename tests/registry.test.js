@@ -14,6 +14,9 @@ const TEMPLATE_FILES = [
   "references/phase-2-plan.md",
   "references/phase-3-implement.md",
   "references/phase-4-verify.md",
+  "references/inline-execution.md",
+  "references/error-handling.md",
+  "references/abort-protocol.md",
 ];
 
 let tmpDirs = [];
@@ -34,6 +37,9 @@ async function makeFakeTarball() {
     "phase-2-plan.md",
     "phase-3-implement.md",
     "phase-4-verify.md",
+    "inline-execution.md",
+    "error-handling.md",
+    "abort-protocol.md",
   ]) {
     await fs.writeFile(path.join(templatesDir, "references", f), `# ${f}`);
   }

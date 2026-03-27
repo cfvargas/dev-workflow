@@ -13,6 +13,9 @@ const TEMPLATE_FILES = [
   "references/phase-2-plan.md",
   "references/phase-3-implement.md",
   "references/phase-4-verify.md",
+  "references/inline-execution.md",
+  "references/error-handling.md",
+  "references/abort-protocol.md",
 ];
 
 export async function copyTemplates(targetDir, sourceDir = TEMPLATES_DIR) {

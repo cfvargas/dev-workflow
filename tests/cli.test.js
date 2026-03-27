@@ -143,6 +143,9 @@ describe("CLI: update", () => {
       "phase-2-plan.md",
       "phase-3-implement.md",
       "phase-4-verify.md",
+      "inline-execution.md",
+      "error-handling.md",
+      "abort-protocol.md",
     ]) {
       await fs.writeFile(path.join(templatesDir, "references", f), `# ${f}`);
     }
