@@ -19,7 +19,7 @@ You are a subagent executing Phase 1 (SPEC) of the SDD workflow. Your job is to 
 
 **Input:** User's request or ticket description.
 
-**Output:** `docs/workflow/<feature-name>/SPEC.md` + directory created
+**Output:** `docs/workflow/<feature-name>/ANALYSIS.md` + `docs/workflow/<feature-name>/SPEC.md` + directory created
 
 ## Why a Separate Spec?
 
@@ -43,13 +43,11 @@ If the user's request already clearly states the problem and motivation, don't w
 
 **Return questions if:** The request describes a solution without a clear problem ("add a Redis cache") or the motivation is unclear ("refactor the auth module"). These need clarification before you can write a meaningful spec.
 
-### 2. Explore the Codebase
+### 2. Analyze the Codebase
 
-Investigate the domain area relevant to the task:
-- Identify what already exists vs what's new
-- Understand existing business rules and entities
-- Check for related types, validations, and patterns
-- Load relevant project-specific skills from `.claude/skills/`
+Read `references/codebase-analysis.md` and execute the exploration protocol defined there. This produces `docs/workflow/<feature-name>/ANALYSIS.md` — a structured summary of the affected area, current behavior, patterns, and boundaries.
+
+The analysis must be completed and ANALYSIS.md written **before** proceeding to Step 3. The findings directly inform which clarifying questions to ask and which edge cases to include in the spec.
 
 ### 3. Eliminate Ambiguity
 
@@ -193,6 +191,7 @@ Before returning results, verify:
 
 - Feature name defined (e.g., `add-ssl-filters`)
 - Directory created at `docs/workflow/<feature-name>/`
+- `ANALYSIS.md` written inside that directory
 - `SPEC.md` written inside that directory
 - OR: clarifying questions returned if ambiguity could not be resolved from the codebase
 
@@ -200,9 +199,14 @@ Before returning results, verify:
 
 When you are done, return a structured summary to the orchestrator in this format:
 
-- **Status:** pass (SPEC.md written) | questions (clarifying questions need user answers) | fail (error encountered)
+- **Status:** pass (ANALYSIS.md + SPEC.md written) | questions (clarifying questions need user answers) | fail (error encountered)
 - **Feature name:** the kebab-case name you chose
 - **Directory created:** path to `docs/workflow/<feature-name>/`
+- **ANALYSIS.md summary:**
+  - Affected files count
+  - Key current behavior (1 sentence)
+  - Patterns identified
+  - Constraints discovered (if any)
 - **SPEC.md contents summary:**
   - Purpose (1 sentence)
   - Number of requirements

@@ -9,6 +9,7 @@ const SKILL_DIR = ".claude/skills/dev-workflow";
 
 const TEMPLATE_FILES = [
   "SKILL.md",
+  "references/codebase-analysis.md",
   "references/phase-1-spec.md",
   "references/phase-2-plan.md",
   "references/phase-3-implement.md",

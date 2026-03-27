@@ -10,6 +10,7 @@ const execFileAsync = promisify(execFile);
 
 const TEMPLATE_FILES = [
   "SKILL.md",
+  "references/codebase-analysis.md",
   "references/phase-1-spec.md",
   "references/phase-2-plan.md",
   "references/phase-3-implement.md",
@@ -33,6 +34,7 @@ async function makeFakeTarball() {
   await fs.mkdir(path.join(templatesDir, "references"), { recursive: true });
   await fs.writeFile(path.join(templatesDir, "SKILL.md"), "FROM_REGISTRY");
   for (const f of [
+    "codebase-analysis.md",
     "phase-1-spec.md",
     "phase-2-plan.md",
     "phase-3-implement.md",
