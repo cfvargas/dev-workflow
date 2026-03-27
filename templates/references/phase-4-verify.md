@@ -46,7 +46,7 @@ Compile a summary of:
 
 ### 3. Clean Up Workflow Artifacts
 
-Workflow artifacts (`docs/workflow/`) are local working documents that should never be committed to git. Delete them before creating the PR:
+Workflow artifacts (`docs/workflow/`) are local working documents that should never be committed to git. This includes `ANALYSIS.md`, `SPEC.md`, and `PLAN.md`. Delete them all before creating the PR:
 
 ```bash
 rm -rf docs/workflow/<feature-name>
@@ -55,7 +55,7 @@ rmdir docs/workflow 2>/dev/null
 
 Since these files were never tracked by git, there is nothing to stage — just delete them locally. If for some reason they were accidentally committed earlier, stage the deletion with `git add` and include it in the PR.
 
-Important: do NOT rely on reading `docs/workflow/<feature-name>/SPEC.md` after this step. All PR body content should already be prepared in Step 2.
+Important: do NOT rely on reading `docs/workflow/<feature-name>/SPEC.md` or `ANALYSIS.md` after this step. All PR body content should already be prepared in Step 2.
 
 ### 4. Deliver
 

@@ -42,11 +42,13 @@ Phase 1 defines a `<feature-name>` used for the directory (`docs/workflow/<featu
 ## Workflow Overview
 
 ```
-Phase 1: SPEC      →  docs/workflow/<feature-name>/SPEC.md   →  User reviews
-Phase 2: PLAN      →  docs/workflow/<feature-name>/PLAN.md   →  User reviews + branch
+Phase 1: SPEC      →  ANALYSIS.md + SPEC.md  →  User reviews
+Phase 2: PLAN      →  PLAN.md + branch       →  User reviews
 Phase 3: IMPLEMENT →  Per-task loop: RED → GREEN → REFACTOR → User reviews each task
 Phase 4: VERIFY    →  Lint + Types + Commit/PR               →  Done
 ```
+
+All workflow artifacts live in `docs/workflow/<feature-name>/` and are deleted in Phase 4.
 
 Phase 3 is iterative: it cycles through each task in the plan one at a time. For each task, it writes failing tests (RED), implements until they pass (GREEN), refactors, and then presents the results for user review before moving to the next task. This prevents large code dumps and gives the user control at every step.
 
@@ -94,6 +96,7 @@ You are a subagent executing Phase N ({PHASE_NAME}) for the `{FEATURE_NAME}` fea
 - **Base branch:** {BASE_BRANCH}
 - **Commit format:** {COMMIT_FORMAT}
 - **Spec:** {SPEC_PATH or "N/A — this phase creates it"}
+- **Analysis:** {ANALYSIS_PATH or "N/A"}
 - **Plan:** {PLAN_PATH or "N/A — this phase creates it"}
 
 ## Task Definition (Phase 3 only)
@@ -120,14 +123,14 @@ If the phase reference requires additional fields beyond the common ones, includ
 
 | Phase | Reference | Subagent receives | Subagent produces |
 |-------|-----------|-------------------|-------------------|
-| 1. SPEC | `references/phase-1-spec.md` | User request, project root | `SPEC.md` + directory (or clarifying questions) |
-| 2. PLAN | `references/phase-2-plan.md` | `SPEC.md` path, project root | `PLAN.md` + git branch |
+| 1. SPEC | `references/phase-1-spec.md` | User request, project root | `ANALYSIS.md` + `SPEC.md` + directory (or clarifying questions) |
+| 2. PLAN | `references/phase-2-plan.md` | `SPEC.md` path, `ANALYSIS.md` path, project root | `PLAN.md` + git branch |
 | 3. IMPLEMENT | `references/phase-3-implement.md` | Single task definition, `SPEC.md` path, branch, test command, completed tasks | Tests + code + refactor for ONE task (no commit) |
 | 4. VERIFY | `references/phase-4-verify.md` | All artifacts, branch, project settings | Verification results, PR (if applicable) |
 
 ### Context Variables
 
-Collect these from Project Detection and pass them to every subagent: `FEATURE_NAME`, `PROJECT_ROOT`, `TEST_COMMAND`, `SPEC_PATH`, `PLAN_PATH`, `PHASE_REFERENCE_PATH`, `BASE_BRANCH`, `COMMIT_FORMAT`.
+Collect these from Project Detection and pass them to every subagent: `FEATURE_NAME`, `PROJECT_ROOT`, `TEST_COMMAND`, `SPEC_PATH`, `ANALYSIS_PATH`, `PLAN_PATH`, `PHASE_REFERENCE_PATH`, `BASE_BRANCH`, `COMMIT_FORMAT`.
 
 ## Phase 3 Task Loop
 
@@ -209,7 +212,7 @@ If the user wants to abandon a workflow, handle it directly in the orchestrator 
 
 ## Rules
 
-- **Artifacts are the source of truth.** Every decision lives in SPEC.md or PLAN.md, not in conversation context. These files are working documents — they get deleted in Phase 4 before creating the PR.
+- **Artifacts are the source of truth.** Every decision lives in ANALYSIS.md, SPEC.md, or PLAN.md, not in conversation context. These files are working documents — they get deleted in Phase 4 before creating the PR.
 - **Branch before code.** Every task — simple or standard — must have a `feature/<name>` branch created before any code is written. Never commit directly to the base branch. *Exception:* In worktree environments, the worktree's own branch provides equivalent isolation.
 - **Tests before code.** When the project has a test runner, always write failing tests before implementation. Without test infrastructure, verify behavior manually against acceptance criteria.
 - **Commit per task.** Each completed task gets its own commit immediately after user approval — before starting the next task.

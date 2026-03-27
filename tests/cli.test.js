@@ -139,6 +139,7 @@ describe("CLI: update", () => {
     await fs.mkdir(path.join(templatesDir, "references"), { recursive: true });
     await fs.writeFile(path.join(templatesDir, "SKILL.md"), "CUSTOM_FROM_PATH");
     for (const f of [
+      "codebase-analysis.md",
       "phase-1-spec.md",
       "phase-2-plan.md",
       "phase-3-implement.md",

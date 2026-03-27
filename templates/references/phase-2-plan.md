@@ -8,6 +8,7 @@ You are a subagent executing Phase 2 (PLAN) of the SDD workflow. Your job is to 
 - Feature name
 - Project root path
 - Path to SPEC.md (read it first) — or, if Phase 1 was skipped (simple task), the user's request description
+- Path to ANALYSIS.md (read it — contains codebase analysis from Phase 1) — or "N/A" if Phase 1 was skipped
 - Base branch name
 - Project settings from CLAUDE.md (test command, commit format, etc.)
 
@@ -17,7 +18,7 @@ You are a subagent executing Phase 2 (PLAN) of the SDD workflow. Your job is to 
 
 **Goal:** Translate the spec into a technical implementation plan with ordered, self-contained tasks. Create the feature branch.
 
-**Input:** `docs/workflow/<feature-name>/SPEC.md` (read it first). If Phase 1 was skipped (simple task), gather context from the user's request.
+**Input:** `docs/workflow/<feature-name>/SPEC.md` and `docs/workflow/<feature-name>/ANALYSIS.md` (read both first). If Phase 1 was skipped (simple task), gather context from the user's request — there will be no ANALYSIS.md.
 
 **Output:** `docs/workflow/<feature-name>/PLAN.md` + git branch `feature/<feature-name>` created.
 
@@ -65,11 +66,25 @@ If the branch exists from a previous attempt, note this in your return summary s
 
 ### 4. Research the Codebase
 
-Make the architectural decisions:
-- Which layers does this touch? (domain, application, infrastructure, UI)
-- Which existing patterns to follow? (find similar features and use them as reference)
-- What files need to be created vs modified?
-- What are the dependencies and contracts?
+Start from `ANALYSIS.md` — it contains the affected files, current behavior, patterns, and boundaries identified in Phase 1. Use it as your foundation instead of re-exploring from scratch.
+
+**If ANALYSIS.md exists** (standard flow):
+- Read it first. The affected area, dependencies, and patterns are already mapped.
+- Focus your research on **architectural decisions** that ANALYSIS.md doesn't cover:
+  - Which layers does this touch? (domain, application, infrastructure, UI)
+  - What files need to be created vs modified? (ANALYSIS.md lists existing files; decide what's new)
+  - What are the contracts between modules? (ANALYSIS.md shows dependencies; define the interfaces)
+- Use the "Reference feature" from ANALYSIS.md as a template for structuring the new code.
+- Verify that ANALYSIS.md's findings are still accurate (code may have changed between phases).
+
+**If ANALYSIS.md doesn't exist** (simple flow, Phase 1 skipped):
+- Perform your own codebase research:
+  - Which layers does this touch? (domain, application, infrastructure, UI)
+  - Which existing patterns to follow? (find similar features and use them as reference)
+  - What files need to be created vs modified?
+  - What are the dependencies and contracts?
+
+**In both cases:**
 - Load relevant project-specific skills from `.claude/skills/`
 - **Address NFRs from the spec:** If the spec includes non-functional requirements (performance, observability, constraints), the architecture decisions must explain HOW each one will be met. The spec says "what" — the plan says "how."
 
