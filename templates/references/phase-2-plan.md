@@ -9,9 +9,9 @@ You are a subagent executing Phase 2 (PLAN) of the SDD workflow. Your job is to 
 - Project root path
 - Path to SPEC.md (read it first) — or, if Phase 1 was skipped (simple task), the user's request description
 - Base branch name
-- Project settings from CLAUDE.md (test command, commit format, etc.)
+- Project settings (test command, commit format, etc.)
 
-**Before you begin:** Read the project's `CLAUDE.md` (or `AGENTS.md`) for conventions, domain context, and project-specific skills.
+**Before you begin:** Read the project's `CLAUDE.md` (or `AGENTS.md`) for conventions, domain context, and project-specific skills. Settings already provided in your dispatch context are authoritative and override CLAUDE.md.
 
 ---
 
@@ -34,15 +34,18 @@ mkdir -p docs/workflow/<feature-name>
 
 ### 2. Read the Spec
 
-Read `docs/workflow/<feature-name>/SPEC.md`. Understand every requirement, edge case, and acceptance criterion before making technical decisions.
+Read `docs/workflow/<feature-name>/SPEC.md`. Understand every requirement, edge case, and acceptance criterion before making technical decisions. In the simple flow there is no SPEC.md — derive acceptance criteria from the user's request and embed them in the tasks.
 
 ### 3. Create the Feature Branch
 
-The branch name matches the directory name. Check if the branch already exists first:
+**Worktree check first:** If you are operating inside a git worktree (e.g., `.claude/worktrees/`), skip this entire step — no checkout, no pull, no branch creation. The worktree is already on its own isolated branch; record that branch name in your return summary as the working branch.
+
+Otherwise, the branch name matches the directory name. Check if the branch already exists first:
 
 ```bash
 git checkout <base-branch>
-git pull origin <base-branch>
+# Pull only if a remote exists — a missing remote is not a failure, just note it in the summary
+git remote get-url origin > /dev/null 2>&1 && git pull origin <base-branch>
 
 # Check if branch exists locally
 if git show-ref --verify --quiet refs/heads/feature/<feature-name>; then
@@ -57,11 +60,6 @@ fi
 **If the rebase has conflicts:** Stop the rebase (`git rebase --abort`) and report the conflicting files in your return summary. The orchestrator will handle user interaction about how to proceed.
 
 If the branch exists from a previous attempt, note this in your return summary so the orchestrator can inform the user.
-
-**Worktree environments:** If you are operating inside a git worktree (e.g., `.claude/worktrees/`), branch switching is restricted — the worktree is already on its own isolated branch. In this case:
-- Skip `git checkout -b` — the worktree branch provides the isolation that a feature branch would.
-- Note the worktree branch name in your return summary as the working branch.
-- The feature branch can be created from the worktree's changes later if needed.
 
 ### 4. Research the Codebase
 
@@ -80,7 +78,7 @@ Save to `docs/workflow/<feature-name>/PLAN.md`:
 ```markdown
 # Plan: <Feature Name>
 
-> Spec: [SPEC.md](./SPEC.md)
+> Spec: [SPEC.md](./SPEC.md)  (omit in the simple flow)
 > Branch: `feature/<name>`
 > Complexity: simple | standard
 
@@ -94,20 +92,18 @@ Files that will be created or modified, organized by task.
 
 ## Tasks
 
-Task ordering matters because Phase 3 executes them sequentially with TDD. The first task should always be writing the failing tests — this ensures the RED step happens before any implementation code exists. Then implementation tasks make those tests pass (GREEN).
+Each task is a **vertical slice**: one coherent unit of behavior that Phase 3 implements with its own RED → GREEN → REFACTOR cycle. The task's tests are written INSIDE that cycle, driven by the task's acceptance criteria — do NOT create separate "write the tests" tasks. A tests-only task can never pass Phase 3's full-suite regression check.
 
-**Order: test tasks → implementation tasks → refactor tasks.**
+Order tasks by dependency: foundations first, then features that build on them. Each task is self-contained — the agent executing it should not need to guess or search for missing context.
 
-Each task is self-contained — the agent executing it should not need to guess or search for missing context.
-
-### Task 1: Write Failing Tests for <Feature>
-**Type:** test
+### Task 1: <Descriptive Name>
+**Status:** pending
 **Files:**
 - Create: `exact/path/to/file.ts`
 - Modify: `exact/path/to/existing.ts`
 - Test: `tests/exact/path/to/file.test.ts`
 
-**Acceptance Criteria** (from spec):
+**Acceptance Criteria** (from spec, or from the request in the simple flow):
 - Given X, When Y, Then Z
 
 **Steps:**
@@ -124,33 +120,35 @@ Each task is self-contained — the agent executing it should not need to guess 
 - Edge cases from spec that need explicit test coverage
 ```
 
+The **Status** line is bookkeeping the orchestrator updates as the workflow advances (`pending` → `committed <hash>` / `done — uncommitted` / `skipped — <reason>`). Always initialize it to `pending`.
+
 ### 6. Self-Check
 
 Before returning results, verify:
 - Are there too many tasks? 3 tasks is better than 7 if 3 covers it.
 - Is the agent creating unnecessary abstractions?
-- Do test tasks come before implementation tasks?
+- Is each task a vertical slice with its own acceptance criteria and test file paths — so Phase 3 can run a full RED → GREEN → REFACTOR cycle on it?
 - Does each task have all the context it needs embedded?
 - Are acceptance criteria from the spec mapped to specific tasks?
-- **No version bump task.** Version bumping happens in Phase 4, not here. Do not include it as a task in the plan.
+- **No version bump task.** Version bumping happens in Phase 4's delivery stage, not here. Do not include it as a task in the plan.
 
 ## Exit Criteria
 
-- Feature branch `feature/<feature-name>` created from base branch
+- Feature branch `feature/<feature-name>` created from base branch — or, in a worktree environment, the worktree branch recorded as the working branch
 - `PLAN.md` is written at `docs/workflow/<feature-name>/PLAN.md`
-- Tasks ordered: tests first, then implementation, then refactoring
+- Tasks ordered by dependency; every task is a self-contained vertical slice with `Status: pending`
 
 ## Return Summary
 
 When you are done, return a structured summary to the orchestrator in this format:
 
-- **Status:** pass | fail (error encountered)
+- **Status:** pass | partial (ran low on context — include exact next steps) | fail (error encountered)
 - **Branch:** name of the branch created or checked out (e.g., `feature/add-ssl-filters`)
-- **Branch note:** whether it was newly created or already existed
+- **Branch note:** newly created, already existed, worktree branch used, or no remote configured (pull skipped)
 - **PLAN.md summary:**
   - Complexity: simple | standard
   - Number of tasks
-  - Task list with titles and types (brief)
+  - Task list with titles (brief)
   - Architecture decisions (brief)
 - **Rebase conflicts:** yes/no — if yes, list conflicting files
 - **Issues or concerns:** anything the orchestrator should know

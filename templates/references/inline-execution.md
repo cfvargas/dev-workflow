@@ -1,10 +1,6 @@
 # Inline Execution Fallback
 
-The Agent tool may not be available in all environments (e.g., sandboxed worktrees, restricted tool sets). When the Agent tool is unavailable, the orchestrator executes phase work inline instead of dispatching subagents. This document describes how inline execution works.
-
-## When to Use
-
-Use inline execution when the Agent tool is not available. Before dispatching the first phase, check if the Agent tool is available. If not, switch to inline execution mode for the entire workflow.
+The Agent tool may not be available in all environments (e.g., sandboxed worktrees, restricted tool sets). When it is unavailable, the orchestrator executes phase work inline instead of dispatching subagents. This document describes how inline execution works.
 
 ## Procedure
 
@@ -21,4 +17,4 @@ Use inline execution when the Agent tool is not available. Before dispatching th
 - **One phase at a time.** Execute only the current phase. Do not look ahead or begin the next phase until the user approves the review gate.
 - **Stop at the review gate.** After finishing executor work for a phase, present the review gate and wait for the user's response. Do not simulate approval or assume the user is satisfied.
 - **Never self-answer clarifying questions.** If Phase 1 identifies ambiguity, return the questions to the user through the review gate. Do not fill in "reasonable defaults" yourself -- surfacing design decisions is the point of Phase 1, not minimizing round trips.
-- **Create artifacts on disk.** Inline execution must still produce the same files a subagent would (SPEC.md, PLAN.md, workflow directory). If file writes are restricted, report what you would have created and present the content in the review gate.
+- **Create artifacts on disk.** Inline execution must still produce the same files a subagent would (SPEC.md, PLAN.md, workflow directory). If file writes are restricted, report what you would have created and present the content in the review gate — then carry the approved content forward explicitly: paste the full SPEC.md/PLAN.md text into the next phase's context in place of the file path, and warn the user that cross-session resume is unavailable until the files can be written.
