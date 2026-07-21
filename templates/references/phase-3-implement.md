@@ -38,6 +38,7 @@ git branch --show-current
 - If on `feature/<feature-name>`: proceed.
 - If on a worktree branch (e.g., `worktree-agent-*`): proceed — worktree isolation is equivalent to a feature branch.
 - If on the base branch (`main`, `master`, `develop`): switch to the feature branch before continuing. If switching fails, STOP and report the issue.
+- If on a different, unexpected branch (neither the feature branch, a worktree branch, nor the base branch): STOP and report the mismatch in your return summary — do not guess which branch is correct.
 
 Log the branch name in your return summary.
 
@@ -140,7 +141,7 @@ When you are done, return a structured summary to the orchestrator in this forma
 
 ## Projects Without a Test Suite
 
-Not every project has testing infrastructure. If the project has no test command in CLAUDE.md (or no test runner configured):
+Not every project has testing infrastructure. If your dispatch context says **Test command: none — no test infrastructure**:
 
 - **Phase 3 adapts:** Instead of the RED -> GREEN -> REFACTOR loop, use an IMPLEMENT -> VERIFY -> REFACTOR loop. "Verify" means manually confirming the behavior works (running the app, checking output, etc.) and documenting what was verified.
 - **Encourage adding tests:** Suggest setting up a minimal test framework as the first task in the plan. This is a recommendation, not a hard requirement -- the user decides.

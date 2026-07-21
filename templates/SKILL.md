@@ -108,6 +108,13 @@ simple-flow Phase 2; a one-line recap for later phases.}
 {TASK_DEFINITION from PLAN.md. When resuming a task with pre-existing or broken files, list what
 exists and what is broken so the subagent repairs rather than recreates.}
 
+## Stage (Phase 4 only)
+
+- **Stage:** {verification | delivery} — always state it; the reference defaults to verification
+- **Uncommitted/skipped tasks:** {tasks with intended commit messages / skip reasons, or "none"}
+- **Delivery only:** {the user's approved decisions (version bump, milestone, release) and the
+  complete Stage 1 PR body draft, verbatim}
+
 ## Instructions
 
 1. Read `{PHASE_REFERENCE_PATH}` for your full instructions
@@ -168,9 +175,11 @@ The review gate is mandatory after every phase. Present results to the user and 
 
 **After each phase:** Present a summary (status, files created/modified, key decisions, next phase) and ask whether to proceed or if the user has feedback.
 
-**User approves:** For Phases 1 and 2 — proceed to the next phase. For Phase 3 — commit the task, then dispatch the next task. For Phase 4 — dispatch its **delivery stage** (`phase-4-verify.md`, Delivery section): it executes the approved version bump, deletes `docs/workflow/<feature-name>/`, pushes and creates the PR (when a remote and PR tooling exist), monitors CI, and applies the approved milestone/release decisions. Then the workflow is complete.
+**User approves:** For Phases 1 and 2 — proceed to the next phase. For Phase 3 — commit the task, then dispatch the next task. For Phase 4 — dispatch its **delivery stage** (`phase-4-verify.md`, Delivery section) with the approved decisions and the Stage 1 PR draft verbatim: it executes the approved version bump, deletes `docs/workflow/<feature-name>/`, pushes and creates the PR (when a remote and PR tooling exist), monitors CI, and applies the approved milestone/release decisions. Then the workflow is complete.
 
-**User requests changes:** Dispatch a **new** subagent with the same phase context plus the user's feedback and a note that files on disk already contain the previous subagent's work. Repeat until approved.
+**Phase 4 verification bookkeeping:** When Stage 1 reports pending-task commits, update those tasks' Status lines in PLAN.md to `committed <hash>` before presenting the gate; if it reports `commit-restricted`, leave them `done — uncommitted` and warn the user.
+
+**User requests changes:** Dispatch a **new** subagent with the same phase context plus the user's feedback and a note that files on disk already contain the previous subagent's work. Repeat until approved. *Exception:* if feedback at the Phase 4 gate requires code changes, dispatch a Phase 3-style task subagent for the change (the orchestrator commits on approval), then re-dispatch the verification stage; only feedback limited to the PR draft or recommendations re-dispatches verification directly.
 
 **Phase 1 returns questions:** Present the questions to the user, collect answers, and dispatch a new Phase 1 subagent with the original request plus answers. Subagents should return questions even when they could guess — surfacing design decisions is the point.
 
@@ -188,7 +197,7 @@ If the user wants to abandon a workflow, handle it directly in the orchestrator 
 - **Commit per task.** Each completed task gets its own commit immediately after user approval — before starting the next task. The user reviews every task, not just the phase.
 - **Read CLAUDE.md first.** Every project has different commands, conventions, and skills.
 - **Phases may span sessions.** Artifacts make that possible. Within a session, on user approval at a gate, proceed directly to the next task or phase — approval, not session boundaries, gates progress.
-- **Orchestrator delegates when possible.** With the Agent tool available, all file creation, code writing, and test execution happen inside subagents. The orchestrator performs only git commits, PLAN.md status bookkeeping, and user interaction. When unavailable, execute inline per `references/inline-execution.md` — one phase per response, gate after each.
+- **Orchestrator delegates when possible.** With the Agent tool available, all file creation, code writing, and test execution happen inside subagents. The orchestrator performs only git commits, PLAN.md status bookkeeping, and user interaction. When unavailable, execute inline per `references/inline-execution.md` — one gated unit per response (a phase, a single Phase 3 task, or a single Phase 4 stage).
 - **One subagent per unit of work.** Phases 1, 2, and each Phase 4 stage get one subagent. Phase 3 gets one subagent per task.
 - **Never self-answer clarifying questions.** Surface ambiguity to the user. The cost of one extra exchange is far lower than the cost of a spec built on assumptions.
 - **Subagents never interact with the user.** All user-facing communication goes through the orchestrator.

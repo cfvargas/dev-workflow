@@ -38,14 +38,14 @@
     },
     {
       "id": 3,
-      "prompt": "I already have a SPEC.md and PLAN.md in docs/workflow/add-dry-run-flag/. The plan has 3 tasks — tasks 1 and 2 show Status: committed, task 3 is pending. I'm on branch feature/add-dry-run-flag. Continue the workflow from where I left off — run /dev-workflow. (Harness setup: copy the contents of evals/files/eval-03/ into the project root before running.)",
+      "prompt": "I already have a SPEC.md and PLAN.md in docs/workflow/add-dry-run-flag/. The plan has 3 tasks — tasks 1 and 2 show Status: committed, task 3 is pending. I'm on branch feature/add-dry-run-flag. Continue the workflow from where I left off — run /dev-workflow. (Harness setup: copy the contents of evals/files/eval-03/ into the project root; git init if needed and create branch feature/add-dry-run-flag. The committed work for tasks 1-2 may be absent from the environment — the agent reporting that discrepancy is acceptable behavior.)",
       "expected_output": "Should detect Phase 3 from the PLAN.md Status lines. Execute task 3 only (not the whole phase). Present the task review gate and stop for approval — commits only happen after the user approves.",
       "files": ["evals/files/eval-03/docs/workflow/add-dry-run-flag/SPEC.md", "evals/files/eval-03/docs/workflow/add-dry-run-flag/PLAN.md"],
       "assertions": [
         { "name": "detects-phase-3", "description": "Correctly detects the workflow is in Phase 3 (IMPLEMENT)" },
         { "name": "reads-status-from-plan", "description": "Identifies tasks 1 and 2 as completed from their Status lines in PLAN.md — does not re-run or re-implement them" },
         { "name": "verifies-correct-branch", "description": "Verifies the current branch is feature/add-dry-run-flag, or explicitly reports the discrepancy if the environment doesn't match the described state" },
-        { "name": "executes-per-task", "description": "Executes task 3 ONLY — one task at a time, not all remaining tasks at once" },
+        { "name": "executes-per-task", "description": "Executes task 3 ONLY — one task at a time, not all remaining tasks at once (surfacing that tasks 1-2's claimed committed work is absent from the environment is also acceptable)" },
         { "name": "executor-does-not-commit", "description": "The executor (subagent or inline) does NOT commit — the orchestrator commits after user approval" },
         { "name": "presents-task-review-gate", "description": "Presents the task 3 results at a review gate and waits for approval before committing or advancing to Phase 4" },
         { "name": "updates-plan-status-on-commit", "description": "If approval is given in-session and the commit succeeds, updates task 3's Status line in PLAN.md to committed <hash>" }
@@ -60,7 +60,7 @@
         { "name": "classifies-as-standard", "description": "Identifies the task as Standard complexity" },
         { "name": "executes-phase-1", "description": "Executes Phase 1 via subagent dispatch or inline fallback" },
         { "name": "surfaces-questions-not-self-answers", "description": "If ambiguity exists, returns clarifying questions to the user instead of self-answering them" },
-        { "name": "fresh-execution-for-answers", "description": "After collecting answers, re-executes Phase 1 with the answers as new context (fresh subagent or fresh inline pass)" },
+        { "name": "fresh-execution-for-answers", "description": "If the user provides answers in-session, re-executes Phase 1 with the original request plus the answers as new context (fresh subagent or fresh inline pass) — vacuously satisfied if no user turn supplies answers" },
         { "name": "presents-review-gate", "description": "Presents a review gate to the user with Phase 1 results or questions" }
       ]
     },
@@ -107,7 +107,7 @@
     },
     {
       "id": 8,
-      "prompt": "Quiero abortar el workflow. Estoy a mitad del Phase 3, task 2 de 4 ya está committed. Ya no quiero esta feature. /dev-workflow abort",
+      "prompt": "Hipotético: estoy a mitad del Phase 3 de un workflow, task 2 de 4 ya está committed en la rama feature. Ya no quiero esta feature. ¿Cómo maneja el orquestador '/dev-workflow abort' en ese estado?",
       "expected_output": "The orchestrator should handle the abort directly (never delegate abort). Should ask for confirmation and offer 3 options: pause, abort keep branch, full abort.",
       "files": [],
       "assertions": [
@@ -137,7 +137,7 @@
       "id": 10,
       "prompt": "dev-workflow. Tengo dos directorios en docs/workflow/: add-caching/ y fix-timeout/. Ambos tienen PLAN.md. ¿Cuál continúo? (Harness setup: copy the contents of evals/files/eval-10/ into the project root before running.)",
       "expected_output": "The orchestrator should detect the ambiguity and ask the user which feature to continue. Should NOT pick one automatically.",
-      "files": ["evals/files/eval-10/docs/workflow/add-caching/PLAN.md", "evals/files/eval-10/docs/workflow/fix-timeout/PLAN.md"],
+      "files": ["evals/files/eval-10/docs/workflow/add-caching/SPEC.md", "evals/files/eval-10/docs/workflow/add-caching/PLAN.md", "evals/files/eval-10/docs/workflow/fix-timeout/PLAN.md"],
       "assertions": [
         { "name": "detects-multiple-workflows", "description": "Detects that there are multiple workflow directories in docs/workflow/" },
         { "name": "asks-user-which-feature", "description": "Asks the user which feature they want to continue instead of picking one automatically" },
@@ -200,7 +200,7 @@
     },
     {
       "id": 15,
-      "prompt": "dev-workflow para agregar un health check endpoint a mi API. El proyecto no tiene tests configurados — no hay test runner, no hay directorio de tests, nada. ¿Cómo adapta el workflow?",
+      "prompt": "Hipotético sobre otro proyecto (no este repo): quiero usar dev-workflow para agregar un health check endpoint a una API Express que NO tiene tests configurados — no hay test runner, no hay directorio de tests, nada en su CLAUDE.md. ¿Cómo adapta el workflow ese caso?",
       "expected_output": "Should detect no test infrastructure and pass test command 'none' (never a guessed default). Phase 3 adapts: IMPLEMENT-VERIFY-REFACTOR instead of RED-GREEN-REFACTOR; Phase 4 verifies acceptance criteria manually.",
       "files": [],
       "assertions": [
@@ -213,11 +213,11 @@
     },
     {
       "id": 16,
-      "prompt": "Phase 4 — all 4 tasks in docs/workflow/add-webhooks/PLAN.md show Status: committed, tests pass, I'm on branch feature/add-webhooks. Run /dev-workflow to finish up. (Harness setup: copy the contents of evals/files/eval-16/ into the project root before running.)",
+      "prompt": "Phase 4 — all 4 tasks in docs/workflow/add-webhooks/PLAN.md show Status: committed, tests pass, I'm on branch feature/add-webhooks. Run /dev-workflow to finish up. (Harness setup: copy the contents of evals/files/eval-16/ into the project root; git init if needed and create branch feature/add-webhooks. The webhook implementation the PLAN.md claims committed may be absent from the environment — the agent detecting and reporting that discrepancy is acceptable behavior.)",
       "expected_output": "Should detect Phase 4 from the PLAN.md Status lines and run its verification stage: quality checks, PR draft, recommendations. Nothing outward-facing (push, PR, artifact deletion) happens before the user approves at the review gate.",
       "files": ["evals/files/eval-16/docs/workflow/add-webhooks/SPEC.md", "evals/files/eval-16/docs/workflow/add-webhooks/PLAN.md"],
       "assertions": [
-        { "name": "detects-phase-4", "description": "Correctly detects the workflow is in Phase 4 (VERIFY) — every task's Status is committed" },
+        { "name": "detects-phase-4", "description": "Correctly detects the workflow is in Phase 4 (VERIFY) — every task's Status is committed (verification detecting and reporting that the claimed committed work is absent is also a passing outcome)" },
         { "name": "executes-verification-stage", "description": "Executes Phase 4 Stage 1 (verification) via subagent or inline fallback" },
         { "name": "runs-configured-checks", "description": "Runs the full test suite, plus lint/type checks only if the project configures them (reports unconfigured checks as skipped — never invents commands)" },
         { "name": "prepares-pr-draft", "description": "Prepares a complete, self-contained PR body draft during verification" },
@@ -254,7 +254,7 @@
     },
     {
       "id": 19,
-      "prompt": "dev-workflow. The PLAN.md in docs/workflow/fix-logging/ has 2 tasks. Task 1's test file (tests/fix-logging.test.js) exists but has import errors — it doesn't compile. I'm on branch feature/fix-logging. Continue. (Harness setup: copy the contents of evals/files/eval-19/ into the project root before running.)",
+      "prompt": "dev-workflow. The PLAN.md in docs/workflow/fix-logging/ has 2 tasks. Task 1's test file (tests/fix-logging.test.js) exists but has import errors — it doesn't compile. I'm on branch feature/fix-logging. Continue. (Harness setup: copy the contents of evals/files/eval-19/ into the project root; git init if needed and create branch feature/fix-logging. If the branch is absent, the agent reporting the discrepancy before proceeding is acceptable behavior.)",
       "expected_output": "Should detect Phase 3. Task 1 has broken tests — it's NOT complete. Should execute task 1, and the dispatch must describe the pre-existing broken files so the executor repairs rather than recreates.",
       "files": ["evals/files/eval-19/docs/workflow/fix-logging/PLAN.md", "evals/files/eval-19/tests/fix-logging.test.js"],
       "assertions": [
@@ -303,6 +303,31 @@
         { "name": "tracks-in-plan-status", "description": "Marks the task's Status line in PLAN.md as done — uncommitted so the state survives the session" },
         { "name": "continues-to-next-task", "description": "Proceeds to task 3 (or Phase 4 if all tasks are done)" },
         { "name": "phase-4-commits-pending", "description": "Explains that Phase 4's verification stage receives the uncommitted-task list and commits them — one commit per task, in task order, with each task's intended message" }
+      ]
+    },
+    {
+      "id": 23,
+      "prompt": "dev-workflow: agrega un flag --json al comando 'status' que imprima la salida en formato JSON. (Harness setup: copy the contents of evals/files/eval-23/ into the project root before running — it contains a stale, unrelated workflow directory.)",
+      "expected_output": "docs/workflow/add-caching/ exists from a paused, unrelated workflow. The orchestrator must not resume it silently: it should ask whether to continue add-caching or start the new --json feature, and dispatch no phase work before the answer.",
+      "files": ["evals/files/eval-23/docs/workflow/add-caching/SPEC.md", "evals/files/eval-23/docs/workflow/add-caching/PLAN.md"],
+      "assertions": [
+        { "name": "detects-stale-workflow", "description": "Detects the existing docs/workflow/add-caching/ directory and recognizes the user's --json request is unrelated to it" },
+        { "name": "asks-continue-vs-new", "description": "Asks the user whether to resume the existing add-caching workflow or start a new feature — does not resume it silently and does not ignore it silently" },
+        { "name": "no-phase-work-before-answer", "description": "Dispatches no phase work (no subagent, no inline execution, no SPEC/PLAN writing) before the user answers" }
+      ]
+    },
+    {
+      "id": 24,
+      "prompt": "Hipotético: la etapa de verificación de Phase 4 terminó — checks en verde, borrador de PR listo, recomendación de bump MINOR en package.json. El usuario aprueba el gate y acepta el bump y el milestone v2.3.0. ¿Qué hace exactamente la etapa de entrega y en qué orden?",
+      "expected_output": "Delivery stage order and scope: guard against uncommitted task work first, apply and commit the approved bump, push and create the PR using the Stage 1 draft verbatim, delete docs/workflow/ only after the push/PR succeeded, fix CI without force-push, apply only the approved milestone/release decisions.",
+      "files": [],
+      "assertions": [
+        { "name": "guards-uncommitted-first", "description": "States that uncommitted Phase 3 task work blocks delivery: it is committed first, or the stage fails with commit-restricted — it never pushes or deletes artifacts with work uncommitted" },
+        { "name": "bump-committed-before-push", "description": "Applies the approved MINOR bump to package.json and commits it (per project commit format) before pushing" },
+        { "name": "pr-from-stage-1-draft", "description": "Creates the PR using the Stage 1 PR body draft verbatim — does not re-read docs/workflow/ artifacts to compose it" },
+        { "name": "artifacts-deleted-after-push", "description": "Deletes docs/workflow/<feature>/ only after the push and PR creation succeed, so a delivery failure preserves resumable state" },
+        { "name": "no-force-push-on-ci-fix", "description": "If CI fails, fixes are pushed as new commits — never a force-push" },
+        { "name": "only-approved-decisions", "description": "Applies exactly the approved decisions (bump + milestone v2.3.0) — no unapproved release or extra actions" }
       ]
     }
   ]

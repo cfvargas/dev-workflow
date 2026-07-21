@@ -6,7 +6,7 @@ When a subagent fails, returns incomplete results, or violates its phase protoco
 
 1. **Report to user** -- Show what the subagent reported: error message, partial results, files that may have been modified.
 2. **Offer options:**
-   - **Retry** -- Dispatch a new subagent with the same inputs. The new subagent will find any partial file writes from the failed attempt on disk and must handle that state.
+   - **Retry** -- Dispatch a new subagent with the same inputs PLUS a listing of the files the failed attempt left on disk and their state (per the dispatch template's Task Definition guidance), so it repairs rather than recreates.
    - **Retry with guidance** -- User provides additional context or constraints, and a new subagent is dispatched with this guidance.
    - **Skip** (Phase 3 tasks only) -- Mark the task as skipped and move to the next one. Record it in PLAN.md (`Status: skipped — <reason>`) so the decision survives the session; a skipped task counts as resolved for phase completion, but always surface it to the user again at the Phase 3 → 4 transition.
    - **Abort** -- Use the Abort Protocol (see `abort-protocol.md`).
