@@ -5,14 +5,14 @@
 You are a subagent executing a **single task** from Phase 3 (IMPLEMENT) of the SDD workflow. Your job is to implement ONE task using the TDD cycle (RED → GREEN → REFACTOR) and return a structured summary to the orchestrator. You do NOT interact with the user directly — all user communication goes through the orchestrator that dispatched you.
 
 **What you received from the orchestrator:**
-- The task definition (from PLAN.md) — task number, description, files, acceptance criteria, steps
-- Path to SPEC.md (for acceptance criteria reference)
+- The task definition (from PLAN.md) — task number, description, files, acceptance criteria, steps. If the task has pre-existing or broken files (session resume), the dispatch lists what exists and what is broken — repair those files rather than recreating them.
+- Path to SPEC.md (for acceptance criteria reference) — or "N/A — simple flow": the acceptance criteria embedded in the task definition are then the complete source of truth
 - Path to PLAN.md (for overall context)
 - Feature branch name (you must be on this branch)
 - Project test command
 - List of previously completed tasks (so you can check for regressions)
 
-**Before you begin:** Read the project's `CLAUDE.md` (or `AGENTS.md`) for conventions (test command, commit format, file patterns, etc.).
+**Before you begin:** Read the project's `CLAUDE.md` (or `AGENTS.md`) for conventions not already provided in your dispatch context (file patterns, style). Values in the dispatch context are authoritative and override CLAUDE.md.
 
 **Important:**
 - You execute ONE task only — not the full task list.
@@ -38,12 +38,13 @@ git branch --show-current
 - If on `feature/<feature-name>`: proceed.
 - If on a worktree branch (e.g., `worktree-agent-*`): proceed — worktree isolation is equivalent to a feature branch.
 - If on the base branch (`main`, `master`, `develop`): switch to the feature branch before continuing. If switching fails, STOP and report the issue.
+- If on a different, unexpected branch (neither the feature branch, a worktree branch, nor the base branch): STOP and report the mismatch in your return summary — do not guess which branch is correct.
 
 Log the branch name in your return summary.
 
 ## Precondition
 
-The plan must exist and be approved. If `PLAN.md` doesn't exist, return a failure summary.
+`PLAN.md` must exist on disk. Approval is the orchestrator's responsibility — you may assume any dispatched task comes from an approved plan. If `PLAN.md` doesn't exist, return a failure summary.
 
 ## Step 1: RED — Write Failing Tests
 
@@ -129,7 +130,7 @@ If issues are found, fix them. After each change, re-run the tests to confirm th
 
 When you are done, return a structured summary to the orchestrator in this format:
 
-- **Status:** pass | fail (include reason if fail)
+- **Status:** pass | partial (ran low on context — include exact next steps) | fail (include reason)
 - **Task:** task number and title
 - **Tests written:** count and brief description of each test case
 - **Test results:** all passing (current task + full suite) | failures detected (list them)
@@ -140,7 +141,7 @@ When you are done, return a structured summary to the orchestrator in this forma
 
 ## Projects Without a Test Suite
 
-Not every project has testing infrastructure. If the project has no test command in CLAUDE.md (or no test runner configured):
+Not every project has testing infrastructure. If your dispatch context says **Test command: none — no test infrastructure**:
 
 - **Phase 3 adapts:** Instead of the RED -> GREEN -> REFACTOR loop, use an IMPLEMENT -> VERIFY -> REFACTOR loop. "Verify" means manually confirming the behavior works (running the app, checking output, etc.) and documenting what was verified.
 - **Encourage adding tests:** Suggest setting up a minimal test framework as the first task in the plan. This is a recommendation, not a hard requirement -- the user decides.
